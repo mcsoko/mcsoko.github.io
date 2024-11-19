@@ -1,0 +1,288 @@
+/* assets/style.css */
+
+/* Global styling */
+body {
+    font-family: 'Roboto', sans-serif;
+    background-color: #f4f5f7;
+    color: #333;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+header {
+    text-align: center;
+    padding: 20px;
+    margin-bottom: 10px;
+    border: 0px;
+}
+
+header h1 {
+    font-size: 2.2em;
+    color: #333;
+}
+
+header p {
+    font-size: 1.1em;
+    color: #555;
+}
+
+/* Card container for sections */
+
+/* Main container */
+.profile-card {
+    display: flex;
+    max-width: 750px;
+    background-color: #fff;
+    border-radius: 20px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    /* overflow: hidden; */
+    margin: 0em auto;
+    padding: 0em;
+    position: relative; /* Makes z-index work */
+    z-index: 9999; /* A high value to ensure it's on top */
+}
+
+  /* Left side with image and background */
+  .profile-image-section {
+    position: relative;
+    width: 20%; /* Adjust width as needed */
+    background: linear-gradient(135deg, #2a4d69, #4a739e);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 1em;
+    border-top-left-radius: 20px;
+    border-bottom-left-radius: 20px;
+  }
+  
+  /* Profile image */
+  .profile-image {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    border: 5px solid #fff;
+    object-fit: cover;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  }
+  
+  /* Right side with content */
+  .profile-content-section {
+    width: 60%; /* Adjust width as needed */
+    padding: .2em;
+    padding-left: 1.5em;
+    color: #333;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  
+  /* Name and title */
+  h2 {
+    font-size: 2em;
+    font-family: 'Montserrat', sans-serif;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 0em;
+    margin-top: 0.2em;
+  }
+  
+  .username {
+    font-size: 0.9em;
+    color: #666;
+    margin-bottom: 0em;
+    margin-top: 0em;
+}
+  
+  .title {
+    font-size: 1em;
+    color: #555;
+    font-style: italic;
+    margin-bottom: 0em;
+    padding-bottom:0em;
+    margin-top: .1em;
+  }
+
+  .title-tagline {
+    font-size: 0.9em;
+    color: #999;
+    margin-bottom: .4em;
+    margin-top: 0.2em;
+  }
+  
+  .personal-details {
+    font-size: 0.9em;
+    color: #999;
+    margin-bottom: .2em;
+    margin-top: 1em;
+  }
+  
+  /* Social icons */
+  .social-icons {
+    display: flex;
+    margin-top: .5em;
+    margin-bottom: .5em;
+    gap: 1.5em;
+  }
+  
+  .social-icons a {
+    color: #555;
+    font-size: 1.2em;
+    text-decoration: none;
+  }
+  
+  .social-icons a:hover {
+    color: #333;
+  }
+  
+/* Main container */
+.section-container {
+    display: flex;
+    width:75%;
+    align-items: flex-start;
+    margin: 0 auto;
+    background-color: #fff;
+    padding: 1em;
+    padding-bottom: 0em;
+    margin-bottom: 0px;
+    padding-top: 0em;
+
+  }
+
+  .section-container-top {
+    margin-top: -10px;
+    padding-top: 10px;
+
+  }
+
+  .section-container-bottom {
+    padding-bottom:20px;
+    padding-top:30px;
+
+    border-radius: 0 0 10px 10px;
+  }
+
+  /* .section-container {
+    display: flex;
+    align-items: flex-start;
+    margin: 2em 0;
+    background-color: #f9f9f9;
+    padding: 1em;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); 
+  } */
+  
+  /* Left column */
+  .left-column {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    border-right: 1px solid #d3d3d3;
+    padding: 1em;
+    /* position: relative; */
+    margin-top: 2em;
+    height: 100%;
+    width:15%;
+  }
+  
+  /* Rotated content */
+  .rotated-content {
+    display: flex;
+    flex-direction: column;
+    transform: rotate(-90deg);
+    transform-origin: center;
+  }
+  
+  /* Icon Circle */
+.icon-circle {
+    width: 35px;
+    height: 35px;
+    background-color: #c0c0c0;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 0.5em;
+  }
+
+  /* Icon styling */
+ .icon {
+    font-size: 1.2em;
+    color: rgb(255, 255, 255);
+    margin-bottom: 0.0em; 
+  }
+   
+  /* Rotated text styling */
+  .rotated-text {
+    font-size: .8em;
+    color: #666;
+    font-weight: bold;
+  }
+  
+  /* Right column */
+  .right-column {
+    flex: 1;
+    padding: 1em 2em;
+    padding-bottom: 0em;
+    margin-bottom: 0px;
+
+  }
+  
+  .right-column h2 {
+    margin-top: 0;
+    font-size: 1.5em;
+    font-weight: bold;
+    color: #333;
+  }
+  
+  .right-column p {
+    font-size: 1em;
+    color: #555;
+    line-height: 1.6;
+    padding-bottom: 0em;
+    margin-bottom: 0px;
+  }
+
+  .skills-table tr td {
+    vertical-align: top;
+    padding-top:.5em;
+    font-size: .9em;
+    color: #555;
+    line-height: 1.6;
+    padding-bottom: 0em;
+    margin-bottom: 0px;
+  }
+
+  th {
+    font-size: 1em;
+    font-family: 'Roboto', sans-serif;
+    color: #666;
+  }
+
+  ul {
+    margin: 0; /* Removes unnecessary margin around lists */
+    padding-left: 30px; /* Indents list items */
+    font-size: 1em;
+    color: #555;
+    line-height: 1.6;
+    padding-bottom: 0em;
+    margin-bottom: 0px;
+  }
+    
+
+  .masonry-grid {
+    column-count: 3; /* Number of columns */
+    column-gap: 10px;
+  }
+  .masonry-grid img {
+    width: 100%;
+    margin-bottom: 10px;
+    border-radius: 8px;
+    display: block;
+  }
+  
+
+  /* Ensure icons are displayed correctly with Font Awesome */
+  @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css');
+  
