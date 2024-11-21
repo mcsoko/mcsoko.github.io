@@ -68,6 +68,7 @@ header p {
 @media (max-width: 576px) {
     .profile-image-section {
         border-radius: 20px;
+        width: 100%;
     }
     .social-icons {
         justify-content: center;
@@ -97,6 +98,11 @@ header p {
         font-weight: bold;
         white-space: nowrap;
     }
+    .profile-content-section {
+        color: #333;
+        padding-left:0px;
+
+      }
 }
 
 @media (min-width: 576px) {
@@ -107,7 +113,8 @@ header p {
 
 
   .profile-row {
-    margin-left:auto;
+    margin-left:0px;
+    padding-right:10px;
     margin-top:10px;
   }
   
@@ -125,7 +132,7 @@ header p {
   .profile-content-section {
     color: #333;
     margin: 0px;
-    margin-left: 10px;
+    margin-left: 0px;
   }
   
   /* Name and title */
