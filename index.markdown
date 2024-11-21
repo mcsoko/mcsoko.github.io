@@ -25,7 +25,7 @@ title: Michael Sokolowski
 </div>
 
 <div class="container section-container">
-    <div class="row profile-row align-items-stretch justify-content-center text-center text-sm-start">
+    <div class="row profile-row align-items-stretch justify-content-center text-sm-start">
         <div class="col-sm-auto col-12 d-flex align-items-center justify-content-center text-center left-column">
                 <div class="icon-circle">
                     <i class="fas fa-briefcase icon"></i>
@@ -33,7 +33,7 @@ title: Michael Sokolowski
             <span class="left-column-text">PROFESSIONAL</span>
             <span class="left-column-text">SUMMARY</span>
         </div>
-        <div class="col-9 right-column">
+        <div class="col-10 right-column">
             <!-- <h2>Content Title</h2> -->
             <p>I'm a Principal Infrastructure Architect with a strong background in platform engineering, DevOps, and cloud computing. I enjoy designing solutions that make a tangible impact on the business, whether it’s leading the architecture of internal developer platforms, solving cross-functional challenges, or identifying ways to save millions in costs. Skilled at framing technical decisions in business terms, I ensure stakeholders see the strategic value behind each solution. I’m also passionate about mentoring, fostering cross-team collaboration, and continuously improving how we build and manage infrastructure.</p>
         </div>
@@ -41,7 +41,7 @@ title: Michael Sokolowski
 </div>
 
 <div class="container section-container">
-<div class="row profile-row align-items-stretch justify-content-center text-center text-sm-start">
+<div class="row profile-row align-items-stretch justify-content-center text-sm-start">
   <div class="col-sm-auto col-12 d-flex align-items-center justify-content-center text-center left-column">
         <div class="icon-circle">
             <i class="fas fa-brain icon"></i>
@@ -120,7 +120,7 @@ title: Michael Sokolowski
   </div>
 
 <div class="container section-container">
-<div class="row profile-row align-items-stretch justify-content-center text-center text-sm-start">
+<div class="row profile-row align-items-stretch justify-content-center text-sm-start">
   <div class="col-sm-auto col-12 d-flex align-items-center justify-content-center text-center left-column">
         <div class="icon-circle">
             <i class="fas fa-user icon"></i>
@@ -137,7 +137,7 @@ title: Michael Sokolowski
 </div>
 
 <div class="container section-container section-container-bottom">
-<div class="row profile-row align-items-stretch justify-content-center text-center text-sm-start">
+<div class="row profile-row align-items-stretch justify-content-center  text-sm-start">
   <div class="col-sm-auto col-12 d-flex align-items-center justify-content-center text-center left-column">
         <div class="icon-circle">
             <i class="fas fa-camera icon"></i>

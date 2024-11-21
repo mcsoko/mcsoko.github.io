@@ -74,6 +74,8 @@ header p {
         justify-content: center;
     }
     .left-column {
+        margin-top: .2em;
+
     }
     table, thead, tbody, th, td, tr {
         display: block;
@@ -100,23 +102,44 @@ header p {
     }
     .profile-content-section {
         color: #333;
-        padding-left:0px;
+        margin:10px;
 
+      }
+
+      .right-column {
+        padding: .5em;
+        padding-top:0px;
+        margin-left: .4em;
+      }
+
+      .title-tagline {
+        font-size: 0.8em;
+        color: #999;
+        margin-bottom: .4em;
+        margin-top: 0.2em;
       }
 }
 
 @media (min-width: 576px) {
     .left-column {
         border-right: 1px solid #d3d3d3;
+        margin-top: 2em;
     }
+
+    .right-column {
+        padding: 1.5em 2em;
+    }
+
+    .title-tagline {
+        font-size: 0.9em;
+        color: #999;
+        margin-bottom: .4em;
+        margin-top: 0.2em;
+      }
+
 }
 
 
-  .profile-row {
-    margin-left:0px;
-    padding-right:10px;
-    margin-top:10px;
-  }
   
   
   /* Profile image */
@@ -161,12 +184,7 @@ header p {
     margin-top: .1em;
   }
 
-  .title-tagline {
-    font-size: 0.9em;
-    color: #999;
-    margin-bottom: .4em;
-    margin-top: 0.2em;
-  }
+
   
   .personal-details {
     font-size: 0.9em;
@@ -236,7 +254,6 @@ header p {
     padding: 1em;
     height:25%;
     /* position: relative; */
-    margin-top: 2em;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -274,7 +291,6 @@ header p {
   /* Right column */
   .right-column {
     flex: 1;
-    padding: 1.5em 2em;
     padding-bottom: 0em;
     margin-bottom: 0px;
 
