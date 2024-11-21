@@ -5,9 +5,8 @@ body {
     font-family: 'Roboto', sans-serif;
     background-color: #f4f5f7;
     color: #333;
-    max-width: 900px;
-    margin: 0 auto;
-    padding: 20px;
+    margin: 10px;
+
 }
 
 header {
@@ -27,16 +26,22 @@ header p {
     color: #555;
 }
 
+
 /* Card container for sections */
+
+.container {
+
+    margin: 0 auto;
+}
 
 /* Main container */
 .profile-card {
-    display: flex;
-    max-width: 750px;
+    max-width: 750px !important; /* Override Bootstrap's max width */
+    width: 90%;
     background-color: #fff;
     border-radius: 20px;
+    /* max-width: 750px; */
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    /* overflow: hidden; */
     margin: 0em auto;
     padding: 0em;
     position: relative; /* Makes z-index work */
@@ -45,36 +50,82 @@ header p {
 
   /* Left side with image and background */
   .profile-image-section {
-    position: relative;
-    width: 20%; /* Adjust width as needed */
+    /* position: relative; */
     background: linear-gradient(135deg, #2a4d69, #4a739e);
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: 1em;
     border-top-left-radius: 20px;
     border-bottom-left-radius: 20px;
+
+    margin: 0px;
+    padding: 20px;
+    padding-right: 20px;
+
   }
+
+  /* For small screens (<768px) */
+@media (max-width: 576px) {
+    .profile-image-section {
+        border-radius: 20px;
+    }
+    .social-icons {
+        justify-content: center;
+    }
+    .left-column {
+    }
+    table, thead, tbody, th, td, tr {
+        display: block;
+    }
+
+    thead tr {
+        display: none; /* Hide table headers */
+    }
+
+    td {
+        position: relative;
+        padding-left: 0%;
+        text-align: left;
+    }
+
+    td:before {
+        content: attr(data-label); /* Use the data-label attribute */
+        position: absolute;
+        left: 0;
+        width: 45%;
+        padding-left: 10px;
+        font-weight: bold;
+        white-space: nowrap;
+    }
+}
+
+@media (min-width: 576px) {
+    .left-column {
+        border-right: 1px solid #d3d3d3;
+    }
+}
+
+
+  .profile-row {
+    margin-left:auto;
+    margin-top:10px;
+  }
+  
   
   /* Profile image */
   .profile-image {
-    width: 120px;
-    height: 120px;
+    max-width: 150px;
+    max-height: 150px;
     border-radius: 50%;
     border: 5px solid #fff;
-    object-fit: cover;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
   }
   
   /* Right side with content */
   .profile-content-section {
-    width: 60%; /* Adjust width as needed */
-    padding: .2em;
-    padding-left: 1.5em;
     color: #333;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
+    margin: 0px;
+    margin-left: 10px;
   }
   
   /* Name and title */
@@ -84,7 +135,7 @@ header p {
     font-weight: bold;
     color: #333;
     margin-bottom: 0em;
-    margin-top: 0.2em;
+    margin-top: 0.3em;
   }
   
   .username {
@@ -138,7 +189,8 @@ header p {
 /* Main container */
 .section-container {
     display: flex;
-    width:75%;
+    max-width: 700px !important; /* Override Bootstrap's max width */
+    width: 85%;
     align-items: flex-start;
     margin: 0 auto;
     background-color: #fff;
@@ -151,7 +203,7 @@ header p {
 
   .section-container-top {
     margin-top: -10px;
-    padding-top: 10px;
+    padding-top: 1.5em;
 
   }
 
@@ -174,25 +226,16 @@ header p {
   
   /* Left column */
   .left-column {
+    padding: 1em;
+    height:25%;
+    /* position: relative; */
+    margin-top: 2em;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    border-right: 1px solid #d3d3d3;
-    padding: 1em;
-    /* position: relative; */
-    margin-top: 2em;
-    height: 100%;
-    width:15%;
   }
   
-  /* Rotated content */
-  .rotated-content {
-    display: flex;
-    flex-direction: column;
-    transform: rotate(-90deg);
-    transform-origin: center;
-  }
   
   /* Icon Circle */
 .icon-circle {
@@ -214,16 +257,17 @@ header p {
   }
    
   /* Rotated text styling */
-  .rotated-text {
+  .left-column-text {
     font-size: .8em;
     color: #666;
     font-weight: bold;
+    min-width: 120px;
   }
   
   /* Right column */
   .right-column {
     flex: 1;
-    padding: 1em 2em;
+    padding: 1.5em 2em;
     padding-bottom: 0em;
     margin-bottom: 0px;
 
@@ -258,6 +302,7 @@ header p {
     font-size: 1em;
     font-family: 'Roboto', sans-serif;
     color: #666;
+    padding-top:.5em;
   }
 
   ul {
