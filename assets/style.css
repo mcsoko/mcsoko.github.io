@@ -67,8 +67,11 @@ header p {
   /* For small screens (<768px) */
 @media (max-width: 576px) {
     .profile-image-section {
-        border-radius: 20px;
-        width: 100%;
+        border-bottom-left-radius: 0px;
+        border-bottom-right-radius: 0px;
+        border-top-left-radius: 20px;
+        border-top-right-radius: 20px;
+        width: 95%;
     }
     .social-icons {
         justify-content: center;
@@ -118,6 +121,15 @@ header p {
         margin-bottom: .4em;
         margin-top: 0.2em;
       }
+
+      h2 {
+        font-size: 1.8em;
+        font-family: 'Montserrat', sans-serif;
+        font-weight: bold;
+        color: #333;
+        margin-bottom: 0em;
+        margin-top: 0.3em;
+      }
 }
 
 @media (min-width: 576px) {
@@ -135,6 +147,15 @@ header p {
         color: #999;
         margin-bottom: .4em;
         margin-top: 0.2em;
+      }
+
+      h2 {
+        font-size: 2em;
+        font-family: 'Montserrat', sans-serif;
+        font-weight: bold;
+        color: #333;
+        margin-bottom: 0em;
+        margin-top: 0.3em;
       }
 
 }
@@ -159,14 +180,7 @@ header p {
   }
   
   /* Name and title */
-  h2 {
-    font-size: 2em;
-    font-family: 'Montserrat', sans-serif;
-    font-weight: bold;
-    color: #333;
-    margin-bottom: 0em;
-    margin-top: 0.3em;
-  }
+
   
   .username {
     font-size: 0.9em;
