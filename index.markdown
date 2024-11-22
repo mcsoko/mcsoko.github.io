@@ -80,7 +80,7 @@ title: Michael Sokolowski
           <li>CI/CD Pipelines (Jenkins, GitOps)</li>
           <li>Infrastructure-as-Code (Terraform)</li>
           <li>Containerization and Orchestration (OpenShift, Kubernetes)</li>
-          <li>Observability (Monitoring, Logging, Tracing)</li>
+          <li>Observability (Monitoring, Logging, Performance)</li>
         </ul>
       </td>
     </tr>
