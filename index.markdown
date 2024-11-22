@@ -65,6 +65,7 @@ title: Michael Sokolowski
         <ul>
           <li>Enterprise Architecture</li>
           <li>Platform Engineering</li>
+          <li>Product Ownership</li>
           <li>IT Systems Strategy and Roadmap</li>
           <li>Business-Technical Alignment</li>
           <li>Mentorship and Leadership</li>
@@ -75,10 +76,10 @@ title: Michael Sokolowski
       <td><strong>Cloud and DevOps</strong></td>
       <td>
         <ul>
-          <li>Cloud Architecture (AWS, OpenShift, Kubernetes)</li>
+          <li>Cloud Provider Platforms (AWS)</li>
           <li>CI/CD Pipelines (Jenkins, GitOps)</li>
-          <li>Infrastructure as Code (Terraform)</li>
-          <li>Containerization and Orchestration (Docker, Kubernetes)</li>
+          <li>Infrastructure-as-Code (Terraform)</li>
+          <li>Containerization and Orchestration (OpenShift, Kubernetes)</li>
           <li>Observability (Monitoring, Logging, Tracing)</li>
         </ul>
       </td>
@@ -96,9 +97,9 @@ title: Michael Sokolowski
       <td><strong>Software Development</strong></td>
       <td>
         <ul>
-          <li>Full-Stack Development (Python/Django, Vue.js, Vite, NGINX)</li>
-          <li>Microservices Architecture</li>
-          <li>Task Queuing and Automation</li>
+          <li>Scripting/Development (Python/Django, Vue.js)</li>
+          <li>Microservices Architecture (12-Factor Apps)</li>
+          <li>Task Queuing and Automation (Kafka, RabbitMQ)</li>
         </ul>
       </td>
     </tr>
