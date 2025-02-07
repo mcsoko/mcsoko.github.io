@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Responsive Asteroids – Improved Asteroid Collisions & Glowing Canister Power-Ups</title>
+  <title>Responsive Asteroids – Improved Mobile Controls & Larger Score</title>
   <style>
     /* Remove default margins and hide scrollbars */
     body {
@@ -43,7 +43,15 @@
       color: white;
       outline: none;
     }
-    /* Hide on-screen controls on devices with fine pointers */
+    /* On smaller screens, make controls larger for easier touch */
+    @media (max-width: 600px) {
+      .control-button {
+        width: 80px;
+        height: 80px;
+        font-size: 32px;
+      }
+    }
+    /* Hide on-screen controls on devices with a fine pointer (e.g. desktop) */
     @media (hover: hover) and (pointer: fine) {
       #movement-controls, #shoot-controls {
         display: none;
@@ -153,7 +161,7 @@
         if (keys["ArrowUp"]) {
           this.thrusting = true;
           let rad = this.angle * Math.PI / 180;
-          // Forward vector: (0,-1) rotates to (sin(rad), -cos(rad))
+          // The ship's forward vector (0,-1) rotates to (sin(rad), -cos(rad))
           let force = new Vector2(Math.sin(rad), -Math.cos(rad)).multiply(this.acceleration);
           this.velocity = this.velocity.add(force);
         } else {
@@ -384,18 +392,18 @@
     
     // --- Collision Handling for Asteroids (Standard Elastic Collision) ---
     function resolveCollision(a1, a2) {
-      // Compute vector between asteroid centers
+      // Vector between centers
       let dx = a1.pos.x - a2.pos.x;
       let dy = a1.pos.y - a2.pos.y;
       let dist = Math.sqrt(dx * dx + dy * dy);
-      if (dist === 0) return; // Prevent division by zero
-      // If they are overlapping
+      if (dist === 0) return; // Avoid division by zero
+      // Calculate overlap
       let overlap = (a1.radius + a2.radius - dist);
       if (overlap > 0) {
         // Normalize the collision vector
         let nx = dx / dist;
         let ny = dy / dist;
-        // Positional correction: push them apart (50% each)
+        // Positional correction (split equally)
         a1.pos.x += nx * overlap / 2;
         a1.pos.y += ny * overlap / 2;
         a2.pos.x -= nx * overlap / 2;
@@ -404,20 +412,17 @@
         // Relative velocity
         let dvx = a1.velocity.x - a2.velocity.x;
         let dvy = a1.velocity.y - a2.velocity.y;
-        // Dot product of relative velocity and collision normal
         let dot = dvx * nx + dvy * ny;
-        // Only resolve if asteroids are moving toward each other
-        if (dot > 0) return;
-        // Masses (assume mass is proportional to size)
+        if (dot > 0) return; // Already moving apart
+        
+        // Assume mass is proportional to size
         let m1 = a1.size;
         let m2 = a2.size;
-        // Compute impulse scalar using standard elastic collision formula
         let impulse = (2 * dot) / (m1 + m2);
-        // Update velocities along the collision normal
-        a1.velocity.x -= (impulse * m2 * nx);
-        a1.velocity.y -= (impulse * m2 * ny);
-        a2.velocity.x += (impulse * m1 * nx);
-        a2.velocity.y += (impulse * m1 * ny);
+        a1.velocity.x -= impulse * m2 * nx;
+        a1.velocity.y -= impulse * m2 * ny;
+        a2.velocity.x += impulse * m1 * nx;
+        a2.velocity.y += impulse * m1 * ny;
       }
     }
     
@@ -471,9 +476,7 @@
         }
     
         for (let asteroid of asteroids) { asteroid.update(); }
-        // Handle collisions between asteroids
         handleAsteroidCollisions(asteroids);
-    
         for (let pu of powerups) { pu.update(); }
     
         for (let i = bullets.length - 1; i >= 0; i--) {
@@ -502,7 +505,7 @@
     
         for (let i = powerups.length - 1; i >= 0; i--) {
           let pu = powerups[i];
-          // Using 10 as an approximate collision radius for the canister.
+          // Use 10 as an approximate collision radius for the canister.
           if (spaceship.pos.distanceTo(pu.pos) < spaceship.radius + 10) {
             spaceship.powerupActive = true;
             spaceship.powerupTimer = 300;
@@ -517,14 +520,15 @@
     function drawGame() {
       ctx.fillStyle = "black";
       ctx.fillRect(0, 0, width, height);
-    
+      
       spaceship.draw(ctx);
       for (let bullet of bullets) { bullet.draw(ctx); }
       for (let asteroid of asteroids) { asteroid.draw(ctx); }
       for (let pu of powerups) { pu.draw(ctx); }
-    
+      
+      // Make the score text larger on mobile devices.
       ctx.fillStyle = "white";
-      ctx.font = "20px Arial";
+      ctx.font = (width < 600 ? "28px Arial" : "20px Arial");
       ctx.fillText("Score: " + score, 10, 30);
       if (spaceship.powerupActive) {
         ctx.fillStyle = "green";
