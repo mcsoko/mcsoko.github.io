@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Responsive Asteroids – Detailed Ship with Prominent Wings and Play Again</title>
+  <style>
+    /* Remove default margins and hide scrollbars */
+    body {
+      margin: 0;
+      background: black;
+      overflow: hidden;
+      position: relative;
+    }
+    /* Make the canvas fill the window */
+    canvas {
+      display: block;
+      background: black;
+    }
+    /* On-screen mobile controls */
+    #movement-controls, #shoot-controls {
+      position: fixed;
+      z-index: 100;
+    }
+    /* Place the movement controls in the bottom-left */
+    #movement-controls {
+      bottom: 20px;
+      left: 20px;
+      display: flex;
+      gap: 10px;
+    }
+    /* Place the shoot control in the bottom-right */
+    #shoot-controls {
+      bottom: 20px;
+      right: 20px;
+    }
+    .control-button {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.3);
+      border: none;
+      font-size: 24px;
+      color: white;
+      outline: none;
+    }
+    /* Hide on-screen controls on larger (desktop) screens */
+    @media (min-width: 600px) {
+      #movement-controls, #shoot-controls {
+        display: none;
+      }
+    }
+    /* Style for the Play Again button (initially hidden) */
+    #playAgainButton {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 24px;
+      padding: 10px 20px;
+      display: none;
+      z-index: 200;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="gameCanvas"></canvas>
+  
+  <!-- On-screen controls for mobile devices -->
+  <div id="movement-controls">
+    <button id="btn-left" class="control-button">◀</button>
+    <button id="btn-thrust" class="control-button">▲</button>
+    <button id="btn-right" class="control-button">▶</button>
+  </div>
+  <div id="shoot-controls">
+    <button id="btn-shoot" class="control-button">✦</button>
+  </div>
+  
+  <!-- Play Again Button (initially hidden) -->
+  <button id="playAgainButton">Play Again</button>
+  
+  <script>
+    // --- Responsive Canvas Setup ---
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+    let width = window.innerWidth;
+    let height = window.innerHeight;
+    canvas.width = width;
+    canvas.height = height;
+    
+    window.addEventListener("resize", () => {
+      width = window.innerWidth;
+      height = window.innerHeight;
+      canvas.width = width;
+      canvas.height = height;
+    });
+    
+    let score = 0;
+    let gameOver = false;
+    let shootCooldown = 0;
+    
+    // --- Keyboard Handling for Desktop ---
+    const keys = {};
+    window.addEventListener("keydown", e => { keys[e.key] = true; });
+    window.addEventListener("keyup", e => { keys[e.key] = false; });
+    
+    // --- Setup On-Screen Controls for Mobile ---
+    function setupControlButton(btnId, keyName) {
+      const btn = document.getElementById(btnId);
+      // For touch devices:
+      btn.addEventListener("touchstart", (e) => { e.preventDefault(); keys[keyName] = true; });
+      btn.addEventListener("touchend", (e) => { e.preventDefault(); keys[keyName] = false; });
+      // For mouse (desktop simulation):
+      btn.addEventListener("mousedown", (e) => { e.preventDefault(); keys[keyName] = true; });
+      btn.addEventListener("mouseup", (e) => { e.preventDefault(); keys[keyName] = false; });
+    }
+    setupControlButton("btn-left", "ArrowLeft");
+    setupControlButton("btn-right", "ArrowRight");
+    setupControlButton("btn-thrust", "ArrowUp");
+    // The space key (" ") is used for shooting.
+    setupControlButton("btn-shoot", " ");
+    
+    // --- Play Again Button ---
+    const playAgainButton = document.getElementById("playAgainButton");
+    playAgainButton.addEventListener("click", resetGame);
+    
+    // --- Helper: 2D Vector Class ---
+    class Vector2 {
+      constructor(x, y) { this.x = x; this.y = y; }
+      clone() { return new Vector2(this.x, this.y); }
+      add(v) { return new Vector2(this.x + v.x, this.y + v.y); }
+      subtract(v) { return new Vector2(this.x - v.x, this.y - v.y); }
+      multiply(scalar) { return new Vector2(this.x * scalar, this.y * scalar); }
+      length() { return Math.sqrt(this.x * this.x + this.y * this.y); }
+      distanceTo(v) { return Math.sqrt((this.x - v.x) ** 2 + (this.y - v.y) ** 2); }
+    }
+    
+    // --- Spaceship Class (Detailed Traditional Style with Prominent Wings) ---
+    class Spaceship {
+      constructor(pos) {
+        this.pos = pos;
+        this.velocity = new Vector2(0, 0);
+        this.angle = 0; // In degrees; 0 means the ship's nose points upward.
+        this.radius = 12;  // Collision radius (approximate)
+        this.acceleration = 0.2;
+        this.friction = 0.99;
+        this.thrusting = false;
+        // Power-up properties:
+        this.powerupActive = false;
+        this.powerupTimer = 0;
+      }
+      update() {
+        if (keys["ArrowLeft"]) { this.angle += 5; }
+        if (keys["ArrowRight"]) { this.angle -= 5; }
+        if (keys["ArrowUp"]) {
+          this.thrusting = true;
+          let rad = this.angle * Math.PI / 180;
+          // The ship's forward vector is (0,-1) in local space.
+          // After rotation, thrust = (sin(rad), -cos(rad)) * acceleration.
+          let force = new Vector2(Math.sin(rad), -Math.cos(rad)).multiply(this.acceleration);
+          this.velocity = this.velocity.add(force);
+        } else {
+          this.thrusting = false;
+        }
+        if (this.powerupActive) {
+          this.powerupTimer--;
+          if (this.powerupTimer <= 0) { this.powerupActive = false; }
+        }
+        this.velocity = this.velocity.multiply(this.friction);
+        this.pos = this.pos.add(this.velocity);
+        // Screen wrapping:
+        if (this.pos.x < 0) this.pos.x = width;
+        if (this.pos.x > width) this.pos.x = 0;
+        if (this.pos.y < 0) this.pos.y = height;
+        if (this.pos.y > height) this.pos.y = 0;
+      }
+      draw(ctx) {
+        let rad = this.angle * Math.PI / 180;
+        ctx.save();
+        ctx.translate(this.pos.x, this.pos.y);
+        ctx.rotate(rad);
+        
+        // --- Draw the Main Ship Polygon ---
+        // The ship is defined in its local coordinate system with its nose at (0, -30).
+        ctx.beginPath();
+        ctx.moveTo(0, -30);    // Nose
+        ctx.lineTo(4, -22);    // Right upper curve
+        ctx.lineTo(7, -12);    // Right wing tip (main body)
+        ctx.lineTo(6, -2);     // Right engine area
+        ctx.lineTo(4, 10);     // Right tail fin
+        ctx.lineTo(0, 15);     // Tail center
+        ctx.lineTo(-4, 10);    // Left tail fin
+        ctx.lineTo(-6, -2);    // Left engine area
+        ctx.lineTo(-7, -12);   // Left wing tip (main body)
+        ctx.lineTo(-4, -22);   // Left upper curve
+        ctx.closePath();
+        ctx.fillStyle = "gray";
+        ctx.fill();
+        ctx.strokeStyle = "white";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        
+        // --- Draw Prominent Wings ---
+        // Using the provided values for the right wing:
+        // Right wing:
+        ctx.beginPath();
+        ctx.moveTo(6, 0);         // Attachment point on the right fuselage
+        ctx.lineTo(16, 6);        // Outer tip: 10 units to the right of (6, 0)
+        ctx.lineTo(6, -16);       // Reversed vertex: 6 units above the attachment point (since 0 - 6 = -6, but here provided value is -16)
+        ctx.closePath();
+        ctx.fillStyle = "darkgray";
+        ctx.fill();
+        ctx.stroke();
+        
+        // Left wing (mirror image using the same values, mirrored horizontally):
+        ctx.beginPath();
+        ctx.moveTo(-6, 0);         // Attachment point on the left fuselage
+        ctx.lineTo(-16, 6);        // Outer tip: mirror of right wing's outer tip
+        ctx.lineTo(-6, -16);       // Reversed vertex: mirror of right wing's reversed vertex
+        ctx.closePath();
+        ctx.fillStyle = "darkgray";
+        ctx.fill();
+        ctx.stroke();
+        
+        // --- Cockpit Detail ---
+        ctx.beginPath();
+        ctx.arc(0, -22, 3, 0, Math.PI * 2);
+        ctx.fillStyle = "black";
+        ctx.fill();
+        ctx.stroke();
+        
+        // --- Thrust Flame Effect ---
+        if (this.thrusting) {
+          ctx.beginPath();
+          ctx.moveTo(-3, 15);
+          ctx.lineTo(0, 25 + Math.random() * 3);
+          ctx.lineTo(3, 15);
+          ctx.closePath();
+          ctx.fillStyle = "orange";
+          ctx.fill();
+        }
+        
+        ctx.restore();
+      }
+    }
+    
+    // --- Bullet Class ---
+    class Bullet {
+      constructor(pos, angle) {
+        this.pos = pos.clone();
+        this.speed = 8;
+        let rad = angle * Math.PI / 180;
+        // The bullet uses the ship’s forward vector: (sin(rad), -cos(rad)) * speed.
+        this.velocity = new Vector2(Math.sin(rad), -Math.cos(rad)).multiply(this.speed);
+        this.radius = 2;
+        this.life = 60;
+      }
+      update() {
+        this.pos = this.pos.add(this.velocity);
+        this.life--;
+        if (this.pos.x < 0) this.pos.x = width;
+        if (this.pos.x > width) this.pos.x = 0;
+        if (this.pos.y < 0) this.pos.y = height;
+        if (this.pos.y > height) this.pos.y = 0;
+      }
+      draw(ctx) {
+        ctx.fillStyle = "white";
+        ctx.beginPath();
+        ctx.arc(this.pos.x, this.pos.y, this.radius, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    
+    // --- Asteroid Class ---
+    class Asteroid {
+      constructor(pos, size) {
+        this.pos = pos.clone();
+        this.size = size;
+        this.radius = 15 * size;
+        let angle = Math.random() * 360;
+        let speed = (1 + Math.random() * 2) / size;
+        this.velocity = new Vector2(Math.cos(angle * Math.PI / 180),
+                                    Math.sin(angle * Math.PI / 180)).multiply(speed);
+        this.angle = Math.random() * 360;
+        this.rotationSpeed = Math.random() * 2 - 1;
+        this.points = [];
+        let numPoints = Math.floor(8 + Math.random() * 5);
+        for (let i = 0; i < numPoints; i++) {
+          let pointAngle = i * (360 / numPoints) + (Math.random() * 30 - 15);
+          let distance = this.radius + (Math.random() * (this.radius * 0.8) - this.radius * 0.4);
+          this.points.push({ angle: pointAngle, distance: distance });
+        }
+      }
+      update() {
+        this.pos = this.pos.add(this.velocity);
+        this.angle = (this.angle + this.rotationSpeed) % 360;
+        if (this.pos.x < 0) this.pos.x = width;
+        if (this.pos.x > width) this.pos.x = 0;
+        if (this.pos.y < 0) this.pos.y = height;
+        if (this.pos.y > height) this.pos.y = 0;
+      }
+      draw(ctx) {
+        ctx.strokeStyle = "white";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        let firstPoint = true;
+        for (let pt of this.points) {
+          let totalAngle = (pt.angle + this.angle) * Math.PI / 180;
+          let x = Math.cos(totalAngle) * pt.distance + this.pos.x;
+          let y = Math.sin(totalAngle) * pt.distance + this.pos.y;
+          if (firstPoint) { ctx.moveTo(x, y); firstPoint = false; }
+          else { ctx.lineTo(x, y); }
+        }
+        ctx.closePath();
+        ctx.stroke();
+      }
+    }
+    
+    // --- Power-Up Class ---
+    class PowerUp {
+      constructor(pos) {
+        this.pos = pos.clone();
+        this.radius = 10;
+        this.type = "spread";
+        this.velocity = new Vector2(Math.random() * 2 - 1, Math.random() * 2 - 1);
+      }
+      update() {
+        this.pos = this.pos.add(this.velocity);
+        if (this.pos.x < 0) this.pos.x = width;
+        if (this.pos.x > width) this.pos.x = 0;
+        if (this.pos.y < 0) this.pos.y = height;
+        if (this.pos.y > height) this.pos.y = 0;
+      }
+      draw(ctx) {
+        ctx.fillStyle = "green";
+        ctx.beginPath();
+        ctx.arc(this.pos.x, this.pos.y, this.radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = "white";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(this.pos.x, this.pos.y, this.radius, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    }
+    
+    // --- Global Game Objects ---
+    let spaceship = new Spaceship(new Vector2(width / 2, height / 2));
+    let bullets = [];
+    let asteroids = spawnAsteroids(5);
+    let powerups = [];
+    
+    function spawnAsteroids(num) {
+      let asteroidsArray = [];
+      for (let i = 0; i < num; i++) {
+        let pos;
+        let side = ["top", "bottom", "left", "right"][Math.floor(Math.random() * 4)];
+        if (side === "top") { pos = new Vector2(Math.random() * width, 0); }
+        else if (side === "bottom") { pos = new Vector2(Math.random() * width, height); }
+        else if (side === "left") { pos = new Vector2(0, Math.random() * height); }
+        else if (side === "right") { pos = new Vector2(width, Math.random() * height); }
+        asteroidsArray.push(new Asteroid(pos, 3));
+      }
+      return asteroidsArray;
+    }
+    
+    function updateGame() {
+      if (!gameOver) {
+        spaceship.update();
+        if (keys[" "] && shootCooldown <= 0) {
+          if (spaceship.powerupActive) {
+            bullets.push(new Bullet(spaceship.pos, spaceship.angle));
+            bullets.push(new Bullet(spaceship.pos, spaceship.angle + 15));
+            bullets.push(new Bullet(spaceship.pos, spaceship.angle - 15));
+            shootCooldown = 5;
+          } else {
+            bullets.push(new Bullet(spaceship.pos, spaceship.angle));
+            shootCooldown = 15;
+          }
+        }
+        if (shootCooldown > 0) { shootCooldown--; }
+    
+        for (let i = bullets.length - 1; i >= 0; i--) {
+          bullets[i].update();
+          if (bullets[i].life <= 0) { bullets.splice(i, 1); }
+        }
+    
+        for (let asteroid of asteroids) { asteroid.update(); }
+        for (let pu of powerups) { pu.update(); }
+    
+        for (let i = bullets.length - 1; i >= 0; i--) {
+          let bullet = bullets[i];
+          for (let j = asteroids.length - 1; j >= 0; j--) {
+            let asteroid = asteroids[j];
+            if (bullet.pos.distanceTo(asteroid.pos) < asteroid.radius) {
+              bullets.splice(i, 1);
+              asteroids.splice(j, 1);
+              score += 100;
+              if (Math.random() < 0.2) { powerups.push(new PowerUp(asteroid.pos)); }
+              if (asteroid.size > 1) {
+                asteroids.push(new Asteroid(asteroid.pos, asteroid.size - 1));
+                asteroids.push(new Asteroid(asteroid.pos, asteroid.size - 1));
+              }
+              break;
+            }
+          }
+        }
+    
+        for (let asteroid of asteroids) {
+          if (spaceship.pos.distanceTo(asteroid.pos) < asteroid.radius + spaceship.radius) {
+            gameOver = true;
+          }
+        }
+    
+        for (let i = powerups.length - 1; i >= 0; i--) {
+          let pu = powerups[i];
+          if (spaceship.pos.distanceTo(pu.pos) < spaceship.radius + pu.radius) {
+            spaceship.powerupActive = true;
+            spaceship.powerupTimer = 300;
+            powerups.splice(i, 1);
+          }
+        }
+    
+        if (asteroids.length === 0) { asteroids = spawnAsteroids(5); }
+      }
+    }
+    
+    function drawGame() {
+      ctx.fillStyle = "black";
+      ctx.fillRect(0, 0, width, height);
+    
+      spaceship.draw(ctx);
+      for (let bullet of bullets) { bullet.draw(ctx); }
+      for (let asteroid of asteroids) { asteroid.draw(ctx); }
+      for (let pu of powerups) { pu.draw(ctx); }
+    
+      ctx.fillStyle = "white";
+      ctx.font = "20px Arial";
+      ctx.fillText("Score: " + score, 10, 30);
+      if (spaceship.powerupActive) {
+        ctx.fillStyle = "green";
+        ctx.fillText("Power-Up Active!", 10, 60);
+      }
+      if (gameOver) {
+        ctx.fillStyle = "white";
+        ctx.font = "40px Arial";
+        let text = "GAME OVER";
+        let textWidth = ctx.measureText(text).width;
+        ctx.fillText(text, (width - textWidth) / 2, height / 2);
+        // Show the Play Again button when game over.
+        playAgainButton.style.display = "block";
+      } else {
+        playAgainButton.style.display = "none";
+      }
+    }
+    
+    function resetGame() {
+      // Reset game variables and objects.
+      gameOver = false;
+      score = 0;
+      spaceship = new Spaceship(new Vector2(width / 2, height / 2));
+      bullets = [];
+      asteroids = spawnAsteroids(5);
+      powerups = [];
+      // Hide the Play Again button.
+      playAgainButton.style.display = "none";
+    }
+    
+    function gameLoop() {
+      updateGame();
+      drawGame();
+      requestAnimationFrame(gameLoop);
+    }
+    gameLoop();
+  </script>
+</body>
+</html>
