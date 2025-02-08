@@ -17,6 +17,24 @@
       background: black;
     }
     
+    /* Game Over & Leaderboard Container */
+    #gameOverContainer {
+      display: none;
+      position: absolute;
+      top: 20%;
+      left: 50%;
+      transform: translate(-50%, 0);
+      color: white;
+      text-align: center;
+      background: rgba(0, 0, 0, 0.8);
+      padding: 20px;
+      border: 2px solid white;
+      border-radius: 10px;
+      max-width: 90%;
+      z-index: 300;
+      font-family: 'Courier New', monospace;
+    }
+    
     /* Welcome Screen Overlay */
     #welcomeScreen {
       position: absolute;
@@ -30,7 +48,7 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      z-index: 300;
+      z-index: 400;
     }
     #welcomeScreen h1 {
       font-size: 48px;
@@ -40,7 +58,8 @@
       font-size: 24px;
       margin: 0 0 40px 0;
     }
-    #welcomeScreen button {
+    /* Start Game button */
+    #startButton {
       font-size: 24px;
       padding: 10px 20px;
       cursor: pointer;
@@ -71,15 +90,16 @@
       color: white;
       outline: none;
     }
-    /* Larger mobile controls */
+    /* Larger, more transparent controls for mobile devices */
     @media (max-width: 600px) {
       .control-button {
-        width: 100px;
-        height: 100px;
-        font-size: 36px;
+        width: 150px;
+        height: 150px;
+        font-size: 48px;
+        background: rgba(255,255,255,0.2);
       }
     }
-    /* Hide on-screen controls on devices with a fine pointer (desktop) */
+    /* Hide controls on devices with a fine pointer */
     @media (hover: hover) and (pointer: fine) {
       #movement-controls, #shoot-controls {
         display: none;
@@ -89,7 +109,7 @@
     /* Play Again Button */
     #playAgainButton {
       position: absolute;
-      top: 60%;
+      top: 90%;
       left: 50%;
       transform: translate(-50%, -50%);
       font-size: 24px;
@@ -102,6 +122,9 @@
 </head>
 <body>
   <canvas id="gameCanvas"></canvas>
+  
+  <!-- Combined Game Over & Leaderboard Overlay -->
+  <div id="gameOverContainer"></div>
   
   <!-- On-screen controls for mobile devices -->
   <div id="movement-controls">
@@ -123,24 +146,23 @@
     <button id="startButton">Start Game</button>
   </div>
   
-  <!-- Include Tone.js for background music -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.39/Tone.js"></script>
-  
   <script>
-    // ==============================
+    // ======================================
     // CONFIGURATION VARIABLES
-    // ==============================
-    const POWERUP_SPAWN_CHANCE = 0.2;  // Chance that an asteroid drops a power-up when destroyed
+    // ======================================
+    const POWERUP_SPAWN_CHANCE = 0.2;  // Chance an asteroid drops a power-up when destroyed
     const POWERUP_DURATION = 300;      // Duration (in frames) that a power-up remains active
-    const DUAL_GUN_CHANCE = 0.5;         // Probability (0 to 1) that a collected power-up is the dual-gun type
+    const DUAL_GUN_CHANCE = 0.5;         // Probability that a collected power-up is the dual gun type
     
-    // ==============================
-    // GLOBAL VARIABLES & SETUP
-    // ==============================
-    let showWelcome = true; // Game starts with welcome screen
+    // ======================================
+    // GLOBAL VARIABLES & CANVAS SETUP
+    // ======================================
+    let showWelcome = true;
     let deathSoundPlayed = false;
+    let score = 0;
+    let gameOver = false;
+    let shootCooldown = 0;
     
-    // Responsive Canvas Setup
     const canvas = document.getElementById("gameCanvas");
     const ctx = canvas.getContext("2d");
     let width = window.innerWidth;
@@ -154,77 +176,82 @@
       canvas.height = height;
     });
     
-    let score = 0;
-    let gameOver = false;
-    let shootCooldown = 0;
-    
-    // Sound Effects
+    // ======================================
+    // SOUND EFFECTS
+    // ======================================
     const shootSound = new Audio('shoot.mp3');
     const explosionSound = new Audio('explosion.mp3');
     const powerupSound = new Audio('powerup.mp3');
     const gameoverSound = new Audio('gameover.mp3');
     
-    // Tone.js Music Setup (Ominous, Longer, Less Repetitive)
-    const synth = new Tone.MonoSynth({
-      oscillator: { type: "square" },
-      envelope: { attack: 0.01, decay: 0.2, sustain: 0.2, release: 1 }
-    }).toDestination();
-    // A longer, ominous melody in D minor (feel free to tweak)
-    const melody = [
-      "D3", "F3", "A3", "C4", "D4", "B3", "A3", "F3",
-      "E3", "G3", "B3", "D4", "E4", "C4", "A3", "G3",
-      "D3", "E3", "F3", "G3", "A3", "G3", "F3", "E3",
-      "D3", "C3", "D3", "E3", "F3", "G3", "A3", "B3"
-    ];
-    let melodyIndex = 0;
-    // Use 8th notes for an uptempo feel.
-    const musicLoop = new Tone.Loop((time) => {
-      synth.triggerAttackRelease(melody[melodyIndex % melody.length], "8n", time);
-      melodyIndex++;
-    }, "8n");
+    // ======================================
+    // LEADERBOARD FUNCTIONS (using localStorage)
+    // ======================================
+    function updateLeaderboard(currentScore) {
+      let leaderboard = JSON.parse(localStorage.getItem("leaderboard")) || [];
+      leaderboard.push({ score: currentScore, date: new Date().toLocaleString() });
+      leaderboard.sort((a, b) => b.score - a.score);
+      leaderboard = leaderboard.slice(0, 10);
+      localStorage.setItem("leaderboard", JSON.stringify(leaderboard));
+      return leaderboard;
+    }
     
-    // Welcome Screen Handling
+    function generateLeaderboardHTML(leaderboard) {
+      let html = "<h2>Leaderboard</h2><ol>";
+      leaderboard.forEach(entry => {
+        html += `<li>${entry.score} - ${entry.date}</li>`;
+      });
+      html += "</ol>";
+      return html;
+    }
+    
+    // ======================================
+    // WELCOME SCREEN HANDLING
+    // ======================================
     const welcomeScreen = document.getElementById("welcomeScreen");
     const startButton = document.getElementById("startButton");
+    
     startButton.addEventListener("click", () => {
       showWelcome = false;
       welcomeScreen.style.display = "none";
-      // Start background music.
-      Tone.Transport.start();
-      musicLoop.start(0);
-      if (Tone.context.state !== "running") {
-        Tone.context.resume();
-      }
     });
     
-    // Global Keyboard Handling for Desktop (only once)
+    // ======================================
+    // GLOBAL KEYBOARD HANDLING (DESKTOP)
+    // ======================================
     const keys = {};
     window.addEventListener("keydown", e => { keys[e.key] = true; });
     window.addEventListener("keyup", e => { keys[e.key] = false; });
     
-    // Setup On-Screen Controls for Mobile
+    // ======================================
+    // SETUP ON-SCREEN CONTROLS (MOBILE)
+    // ======================================
     function setupControlButton(btnId, keyName) {
       const btn = document.getElementById(btnId);
-      btn.addEventListener("touchstart", (e) => { e.preventDefault(); keys[keyName] = true; });
-      btn.addEventListener("touchend", (e) => { e.preventDefault(); keys[keyName] = false; });
-      btn.addEventListener("mousedown", (e) => { e.preventDefault(); keys[keyName] = true; });
-      btn.addEventListener("mouseup", (e) => { e.preventDefault(); keys[keyName] = false; });
+      btn.addEventListener("touchstart", e => { e.preventDefault(); keys[keyName] = true; });
+      btn.addEventListener("touchend", e => { e.preventDefault(); keys[keyName] = false; });
+      btn.addEventListener("mousedown", e => { e.preventDefault(); keys[keyName] = true; });
+      btn.addEventListener("mouseup", e => { e.preventDefault(); keys[keyName] = false; });
     }
     setupControlButton("btn-left", "ArrowLeft");
     setupControlButton("btn-right", "ArrowRight");
     setupControlButton("btn-thrust", "ArrowUp");
     setupControlButton("btn-shoot", " ");
     
-    // Play Again Button
+    // ======================================
+    // PLAY AGAIN BUTTON HANDLING
+    // ======================================
     const playAgainButton = document.getElementById("playAgainButton");
     playAgainButton.addEventListener("click", resetGame);
     
-    // Global array for explosion particles
+    // ======================================
+    // GLOBAL ARRAY FOR EXPLOSION PARTICLES
+    // ======================================
     let particles = [];
     
-    // -------------------------------
-    // Helper: 2D Vector Class
-    // -------------------------------
+    // ======================================
+    // HELPER: 2D VECTOR CLASS
+    // ======================================
     class Vector2 {
       constructor(x, y) { this.x = x; this.y = y; }
       clone() { return new Vector2(this.x, this.y); }
@@ -235,9 +262,9 @@
       distanceTo(v) { return Math.sqrt((this.x - v.x) ** 2 + (this.y - v.y) ** 2); }
     }
     
-    // -------------------------------
-    // Particle Class (Explosion Effects)
-    // -------------------------------
+    // ======================================
+    // PARTICLE CLASS (EXPLOSION EFFECTS)
+    // ======================================
     class Particle {
       constructor(pos) {
         this.pos = pos.clone();
@@ -273,9 +300,9 @@
       explosionSound.play();
     }
     
-    // -------------------------------
-    // Spaceship Class (with Power-Up properties)
-    // -------------------------------
+    // ======================================
+    // SPACESHIP CLASS (WITH POWER-UP PROPERTIES)
+    // ======================================
     class Spaceship {
       constructor(pos) {
         this.pos = pos;
@@ -337,7 +364,6 @@
         ctx.strokeStyle = "white";
         ctx.lineWidth = 2;
         ctx.stroke();
-        
         // Draw prominent wings.
         ctx.beginPath();
         ctx.moveTo(6, 0);
@@ -347,7 +373,6 @@
         ctx.fillStyle = "darkgray";
         ctx.fill();
         ctx.stroke();
-        
         ctx.beginPath();
         ctx.moveTo(-6, 0);
         ctx.lineTo(-16, 6);
@@ -356,14 +381,12 @@
         ctx.fillStyle = "darkgray";
         ctx.fill();
         ctx.stroke();
-        
         // Cockpit detail.
         ctx.beginPath();
         ctx.arc(0, -22, 3, 0, Math.PI * 2);
         ctx.fillStyle = "black";
         ctx.fill();
         ctx.stroke();
-        
         // Thrust flame effect.
         if (this.thrusting) {
           ctx.beginPath();
@@ -374,14 +397,13 @@
           ctx.fillStyle = "orange";
           ctx.fill();
         }
-        
         ctx.restore();
       }
     }
     
-    // -------------------------------
-    // Bullet Class
-    // -------------------------------
+    // ======================================
+    // BULLET CLASS
+    // ======================================
     class Bullet {
       constructor(pos, angle) {
         this.pos = pos.clone();
@@ -407,9 +429,9 @@
       }
     }
     
-    // -------------------------------
-    // Helper Function: Generate Realistic Asteroid Points
-    // -------------------------------
+    // ======================================
+    // HELPER FUNCTION: GENERATE ASTEROID POINTS
+    // ======================================
     function generateAsteroidPoints(radius, numPoints) {
       const points = [];
       const phase1 = Math.random() * 2 * Math.PI;
@@ -423,9 +445,9 @@
       return points;
     }
     
-    // -------------------------------
-    // Asteroid Class (More Detailed and Realistic)
-    // -------------------------------
+    // ======================================
+    // ASTEROID CLASS (MORE DETAILED AND REALISTIC)
+    // ======================================
     class Asteroid {
       constructor(pos, size) {
         this.pos = pos.clone();
@@ -453,7 +475,6 @@
         grad.addColorStop(0, "#888");
         grad.addColorStop(1, "#333");
         ctx.fillStyle = grad;
-        
         ctx.beginPath();
         let firstPoint = true;
         for (let pt of this.points) {
@@ -471,9 +492,9 @@
       }
     }
     
-    // -------------------------------
-    // Power-Up Class (Canister Style with Glowing Green Halo)
-    // -------------------------------
+    // ======================================
+    // POWER-UP CLASS (CANISTER STYLE WITH GLOWING GREEN HALO)
+    // ======================================
     class PowerUp {
       constructor(pos) {
         this.pos = pos.clone();
@@ -499,7 +520,6 @@
         ctx.beginPath();
         ctx.arc(0, 0, 20, 0, 2 * Math.PI);
         ctx.fill();
-        
         // Draw the canister body.
         const canWidth = 12;
         const canHeight = 20;
@@ -526,9 +546,9 @@
       }
     }
     
-    // -------------------------------
-    // Collision Handling for Asteroids (Standard Elastic Collision)
-    // -------------------------------
+    // ======================================
+    // COLLISION HANDLING (ELASTIC) FOR ASTEROIDS
+    // ======================================
     function resolveCollision(a1, a2) {
       let dx = a1.pos.x - a2.pos.x;
       let dy = a1.pos.y - a2.pos.y;
@@ -542,12 +562,10 @@
         a1.pos.y += ny * overlap / 2;
         a2.pos.x -= nx * overlap / 2;
         a2.pos.y -= ny * overlap / 2;
-        
         let dvx = a1.velocity.x - a2.velocity.x;
         let dvy = a1.velocity.y - a2.velocity.y;
         let dot = dvx * nx + dvy * ny;
         if (dot > 0) return;
-        
         let m1 = a1.size;
         let m2 = a2.size;
         let impulse = (2 * dot) / (m1 + m2);
@@ -566,9 +584,9 @@
       }
     }
     
-    // -------------------------------
-    // Global Game Objects
-    // -------------------------------
+    // ======================================
+    // GLOBAL GAME OBJECTS
+    // ======================================
     let spaceship = new Spaceship(new Vector2(width / 2, height / 2));
     let bullets = [];
     let asteroids = spawnAsteroids(5);
@@ -588,25 +606,22 @@
       return asteroidsArray;
     }
     
-    // -------------------------------
-    // Game Update & Drawing
-    // -------------------------------
+    // ======================================
+    // GAME UPDATE & DRAWING FUNCTIONS
+    // ======================================
     function updateGame() {
       if (!gameOver && !showWelcome) {
         spaceship.update();
-        // Shooting logic.
+        // Shooting logic:
         if (keys[" "] && shootCooldown <= 0) {
           if (spaceship.powerupActive) {
             if (spaceship.powerupType === "spread") {
-              // Spread power-up fires three bullets.
               bullets.push(new Bullet(spaceship.pos, spaceship.angle));
               bullets.push(new Bullet(spaceship.pos, spaceship.angle + 15));
               bullets.push(new Bullet(spaceship.pos, spaceship.angle - 15));
               shootCooldown = 5;
             } else if (spaceship.powerupType === "dual") {
-              // Dual gun fires from both sides.
               let rad = spaceship.angle * Math.PI / 180;
-              // Perpendicular offset vector (rotate (sin, -cos) by 90° → (cos, sin))
               let sideOffset = new Vector2(Math.cos(rad), Math.sin(rad)).multiply(6);
               bullets.push(new Bullet(spaceship.pos.add(sideOffset), spaceship.angle));
               bullets.push(new Bullet(spaceship.pos.subtract(sideOffset), spaceship.angle));
@@ -615,7 +630,6 @@
             shootSound.currentTime = 0;
             shootSound.play();
           } else {
-            // Normal single bullet.
             bullets.push(new Bullet(spaceship.pos, spaceship.angle));
             shootCooldown = 15;
             shootSound.currentTime = 0;
@@ -638,7 +652,7 @@
           if (particles[i].life <= 0) { particles.splice(i, 1); }
         }
     
-        // Bullet-asteroid collisions.
+        // Bullet-asteroid collisions:
         for (let i = bullets.length - 1; i >= 0; i--) {
           let bullet = bullets[i];
           for (let j = asteroids.length - 1; j >= 0; j--) {
@@ -678,7 +692,6 @@
           if (spaceship.pos.distanceTo(pu.pos) < spaceship.radius + 10) {
             spaceship.powerupActive = true;
             spaceship.powerupTimer = POWERUP_DURATION;
-            // Randomly assign power-up type using configurable chance.
             spaceship.powerupType = (Math.random() < DUAL_GUN_CHANCE) ? "dual" : "spread";
             powerups.splice(i, 1);
           }
@@ -691,17 +704,17 @@
     function drawGame() {
       ctx.fillStyle = "black";
       ctx.fillRect(0, 0, width, height);
-      
-      // Draw explosion particles first.
+    
+      // Draw explosion particles.
       for (let particle of particles) {
         particle.draw(ctx);
       }
-      
+    
       spaceship.draw(ctx);
       for (let bullet of bullets) { bullet.draw(ctx); }
       for (let asteroid of asteroids) { asteroid.draw(ctx); }
       for (let pu of powerups) { pu.draw(ctx); }
-      
+    
       ctx.fillStyle = "white";
       ctx.font = (width < 600 ? "28px Arial" : "20px Arial");
       ctx.fillText("Score: " + score, 10, 30);
@@ -709,19 +722,20 @@
         ctx.fillStyle = "green";
         ctx.fillText("Power-Up Active!", 10, 60);
       }
+    
+      // When game is over, update and show the combined overlay.
       if (gameOver) {
-        ctx.fillStyle = "white";
-        ctx.font = "40px Arial";
-        let text = "GAME OVER";
-        let textWidth = ctx.measureText(text).width;
-        ctx.fillText(text, (width - textWidth) / 2, height * 0.4);
-        ctx.font = "24px Arial";
-        let subText = "Final Score: " + score;
-        let subTextWidth = ctx.measureText(subText).width;
-        ctx.fillText(subText, (width - subTextWidth) / 2, height * 0.4 + 40);
+        const container = document.getElementById("gameOverContainer");
+        container.innerHTML = `
+          <h1>GAME OVER</h1>
+          <p>Final Score: ${score}</p>
+          ${generateLeaderboardHTML(updateLeaderboard(score))}
+        `;
+        container.style.display = "block";
         playAgainButton.style.display = "block";
       } else {
         playAgainButton.style.display = "none";
+        document.getElementById("gameOverContainer").style.display = "none";
       }
     }
     
@@ -735,6 +749,7 @@
       particles = [];
       deathSoundPlayed = false;
       playAgainButton.style.display = "none";
+      document.getElementById("gameOverContainer").style.display = "none";
     }
     
     function gameLoop() {
