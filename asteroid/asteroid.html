@@ -15,6 +15,9 @@
     canvas {
       display: block;
       background: black;
+      /* Ensure the canvas fills the viewport */
+      width: 100%;
+      height: 100%;
     }
     
     /* Game Over & Leaderboard Container */
@@ -147,34 +150,50 @@
   </div>
   
   <script>
-    // Get a reference to the canvas element and its 2D context.
+    // ----------------------------
+    // CONFIGURATION VARIABLES
+    // ----------------------------
+    // These variables allow you to adjust player behavior.
+    const PLAYER_ROTATION_SPEED = 7;      // Degrees per frame at 60 FPS baseline.
+    const PLAYER_ACCELERATION = 0.2;      // Acceleration when thrusting.
+    const SHOOT_COOLDOWN_NORMAL = 15;     // Frames delay between shots normally.
+    const SHOOT_COOLDOWN_POWERUP = 5;     // Frames delay between shots when a power-up is active.
+    
+    // ----------------------------
+    // Mobile Detection and Canvas Setup
+    // ----------------------------
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     const canvas = document.getElementById("gameCanvas");
     const ctx = canvas.getContext("2d");
-
-    // Set the canvas dimensions.
-    let width = window.innerWidth;
-    let height = window.innerHeight;
-    canvas.width = width;
-    canvas.height = height;
-
-    window.addEventListener("resize", () => {
-      width = window.innerWidth;
-      height = window.innerHeight;
-      canvas.width = width;
-      canvas.height = height;
-    });
     
-    // ======================================
-    // GLOBAL VARIABLES & CONFIGURATION
-    // ======================================
-    const LEVEL_UP_SCORE = 1000;          // Score threshold for each level.
+    // Declare global width and height.
+    let width, height;
+    
+    function resizeCanvas() {
+      if (isMobile) {
+        width = window.innerWidth * 0.5;
+        height = window.innerHeight * 0.5;
+        canvas.width = width;
+        canvas.height = height;
+        ctx.setTransform(2, 0, 0, 2, 0, 0); // Scale context up so drawing remains full-screen.
+      } else {
+        width = window.innerWidth;
+        height = window.innerHeight;
+        canvas.width = width;
+        canvas.height = height;
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+      }
+    }
+    resizeCanvas();
+    window.addEventListener("resize", resizeCanvas);
+    
+    // ----------------------------
+    // GLOBAL VARIABLES & GAME CONFIGURATION
+    // ----------------------------
+    const LEVEL_UP_SCORE = 1000;
     let currentLevel = 1;
-    // nextLevelScore defines the score needed for the next level.
     let nextLevelScore = LEVEL_UP_SCORE;
-
-    // (Enemy-related arrays removed.)
-
-    // Other global variables.
+    
     let showWelcome = true;
     let deathSoundPlayed = false;
     let score = 0;
@@ -182,37 +201,23 @@
     let shootCooldown = 0;
     let leaderboardUpdated = false;
     
-    // Variables for displaying a level-up message.
     let showLevelDisplay = false;
     let levelDisplayTimer = 0;
     
-    // ======================================
-    // CONFIGURATION VARIABLES
-    // ======================================
-    const POWERUP_DURATION = 500;      // Duration (in frames) that a power-up remains active
-    // There are now three power-up types: "spread", "dual", and "omni".
+    const POWERUP_DURATION = 500;  // Duration (in frames at 60 FPS baseline) for active power-ups.
+    // Power-up types: "spread", "dual", or "omni".
     
-    // ======================================
-    // GLOBAL VARIABLES & CANVAS SETUP
-    // ======================================
-    window.addEventListener("resize", () => {
-      width = window.innerWidth;
-      height = window.innerHeight;
-      canvas.width = width;
-      canvas.height = height;
-    });
-    
-    // ======================================
+    // ----------------------------
     // SOUND EFFECTS
-    // ======================================
+    // ----------------------------
     const shootSound = new Audio('shoot.mp3');
     const explosionSound = new Audio('explosion.mp3');
     const powerupSound = new Audio('powerup.mp3');
     const gameoverSound = new Audio('gameover.mp3');
     
-    // ======================================
-    // LEADERBOARD FUNCTIONS (using localStorage)
-    // ======================================
+    // ----------------------------
+    // LEADERBOARD FUNCTIONS
+    // ----------------------------
     function updateLeaderboard(currentScore) {
       let leaderboard = JSON.parse(localStorage.getItem("leaderboard")) || [];
       leaderboard.push({ score: currentScore, date: new Date().toLocaleString() });
@@ -231,27 +236,26 @@
       return html;
     }
     
-    // ======================================
+    // ----------------------------
     // WELCOME SCREEN HANDLING
-    // ======================================
+    // ----------------------------
     const welcomeScreen = document.getElementById("welcomeScreen");
     const startButton = document.getElementById("startButton");
-    
     startButton.addEventListener("click", () => {
       showWelcome = false;
       welcomeScreen.style.display = "none";
     });
     
-    // ======================================
+    // ----------------------------
     // GLOBAL KEYBOARD HANDLING (DESKTOP)
-    // ======================================
+    // ----------------------------
     const keys = {};
     window.addEventListener("keydown", e => { keys[e.key] = true; });
     window.addEventListener("keyup", e => { keys[e.key] = false; });
     
-    // ======================================
-    // SETUP ON-SCREEN CONTROLS (MOBILE)
-    // ======================================
+    // ----------------------------
+    // ON-SCREEN CONTROLS FOR MOBILE
+    // ----------------------------
     function setupControlButton(btnId, keyName) {
       const btn = document.getElementById(btnId);
       btn.addEventListener("touchstart", e => { e.preventDefault(); keys[keyName] = true; });
@@ -264,20 +268,20 @@
     setupControlButton("btn-thrust", "ArrowUp");
     setupControlButton("btn-shoot", " ");
     
-    // ======================================
+    // ----------------------------
     // PLAY AGAIN BUTTON HANDLING
-    // ======================================
+    // ----------------------------
     const playAgainButton = document.getElementById("playAgainButton");
     playAgainButton.addEventListener("click", resetGame);
     
-    // ======================================
-    // GLOBAL ARRAY FOR EXPLOSION PARTICLES
-    // ======================================
+    // ----------------------------
+    // GLOBAL ARRAY FOR PARTICLES
+    // ----------------------------
     let particles = [];
     
-    // ======================================
-    // HELPER: 2D VECTOR CLASS
-    // ======================================
+    // ----------------------------
+    // 2D VECTOR CLASS
+    // ----------------------------
     class Vector2 {
       constructor(x, y) { this.x = x; this.y = y; }
       clone() { return new Vector2(this.x, this.y); }
@@ -288,26 +292,24 @@
       distanceTo(v) { return Math.sqrt((this.x - v.x) ** 2 + (this.y - v.y) ** 2); }
     }
     
-    // ======================================
-    // PARTICLE CLASS (Enhanced, Crisp Explosion Effects)
-    // ======================================
+    // ----------------------------
+    // PARTICLE CLASS (Crisp, Extended-Lifespan)
+    // ----------------------------
     class Particle {
       constructor(pos) {
         this.pos = pos.clone();
         let angle = Math.random() * 2 * Math.PI;
         let speed = 2 + Math.random() * 2;
         this.velocity = new Vector2(Math.cos(angle), Math.sin(angle)).multiply(speed);
-        // Increase lifespan and reduce size for a crisper look.
-        this.life = 100;
+        this.life = 80;
         this.initialLife = this.life;
-        this.radius = 1.5;  // Smaller than before for a crisper appearance.
-        // Vibrant colors remain.
+        this.radius = 3;
         const colors = ["#ff4d4d", "#ff944d", "#ffff4d", "#94ff4d", "#4dffff", "#4d94ff", "#ff4dff"];
         this.color = colors[Math.floor(Math.random() * colors.length)];
       }
-      update() {
-        this.pos = this.pos.add(this.velocity);
-        this.life--;
+      update(factor) {
+        this.pos = this.pos.add(this.velocity.multiply(factor));
+        this.life -= factor;
       }
       draw(ctx) {
         ctx.save();
@@ -321,7 +323,6 @@
     }
     
     function spawnExplosion(pos, size) {
-      // Increase particle count for more dramatic explosions.
       let count = 20 + Math.floor(Math.random() * 10);
       for (let i = 0; i < count; i++) {
         particles.push(new Particle(pos));
@@ -330,42 +331,42 @@
       explosionSound.play();
     }
     
-    // ======================================
-    // SPACESHIP CLASS (WITH POWER-UP PROPERTIES)
-    // ======================================
+    // ----------------------------
+    // SPACESHIP CLASS (With Power-Up)
+    // ----------------------------
     class Spaceship {
       constructor(pos) {
         this.pos = pos;
         this.velocity = new Vector2(0, 0);
         this.angle = 0;
         this.radius = 12;
-        this.acceleration = 0.2;
+        this.acceleration = PLAYER_ACCELERATION;
         this.friction = 0.99;
         this.thrusting = false;
         this.powerupActive = false;
         this.powerupTimer = 0;
         this.powerupType = null; // "spread", "dual", or "omni"
       }
-      update() {
-        if (keys["ArrowLeft"]) { this.angle += 5; }
-        if (keys["ArrowRight"]) { this.angle -= 5; }
+      update(factor) {
+        if (keys["ArrowLeft"]) { this.angle += PLAYER_ROTATION_SPEED * factor; }
+        if (keys["ArrowRight"]) { this.angle -= PLAYER_ROTATION_SPEED * factor; }
         if (keys["ArrowUp"]) {
           this.thrusting = true;
           let rad = this.angle * Math.PI / 180;
-          let force = new Vector2(Math.sin(rad), -Math.cos(rad)).multiply(this.acceleration);
+          let force = new Vector2(Math.sin(rad), -Math.cos(rad)).multiply(this.acceleration * factor);
           this.velocity = this.velocity.add(force);
         } else {
           this.thrusting = false;
         }
         if (this.powerupActive) {
-          this.powerupTimer--;
+          this.powerupTimer -= factor;
           if (this.powerupTimer <= 0) {
             this.powerupActive = false;
             this.powerupType = null;
           }
         }
-        this.velocity = this.velocity.multiply(this.friction);
-        this.pos = this.pos.add(this.velocity);
+        this.velocity = this.velocity.multiply(Math.pow(this.friction, factor));
+        this.pos = this.pos.add(this.velocity.multiply(factor));
         if (this.pos.x < 0) this.pos.x = width;
         if (this.pos.x > width) this.pos.x = 0;
         if (this.pos.y < 0) this.pos.y = height;
@@ -376,7 +377,6 @@
         ctx.save();
         ctx.translate(this.pos.x, this.pos.y);
         ctx.rotate(rad);
-        // Draw main ship fuselage.
         ctx.beginPath();
         ctx.moveTo(0, -30);
         ctx.lineTo(4, -22);
@@ -394,7 +394,6 @@
         ctx.strokeStyle = "white";
         ctx.lineWidth = 2;
         ctx.stroke();
-        // Draw prominent wings.
         ctx.beginPath();
         ctx.moveTo(6, 0);
         ctx.lineTo(16, 6);
@@ -411,13 +410,11 @@
         ctx.fillStyle = "darkgray";
         ctx.fill();
         ctx.stroke();
-        // Cockpit detail.
         ctx.beginPath();
         ctx.arc(0, -22, 3, 0, Math.PI * 2);
         ctx.fillStyle = "black";
         ctx.fill();
         ctx.stroke();
-        // Thrust flame effect.
         if (this.thrusting) {
           ctx.beginPath();
           ctx.moveTo(-3, 15);
@@ -431,9 +428,9 @@
       }
     }
     
-    // ======================================
+    // ----------------------------
     // BULLET CLASS
-    // ======================================
+    // ----------------------------
     class Bullet {
       constructor(pos, angle) {
         this.pos = pos.clone();
@@ -443,9 +440,9 @@
         this.radius = 2;
         this.life = 60;
       }
-      update() {
-        this.pos = this.pos.add(this.velocity);
-        this.life--;
+      update(factor) {
+        this.pos = this.pos.add(this.velocity.multiply(factor));
+        this.life -= factor;
         if (this.pos.x < 0) this.pos.x = width;
         if (this.pos.x > width) this.pos.x = 0;
         if (this.pos.y < 0) this.pos.y = height;
@@ -459,25 +456,9 @@
       }
     }
     
-    // ======================================
-    // HELPER FUNCTION: GENERATE ASTEROID POINTS
-    // ======================================
-    function generateAsteroidPoints(radius, numPoints) {
-      const points = [];
-      const phase1 = Math.random() * 2 * Math.PI;
-      const phase2 = Math.random() * 2 * Math.PI;
-      for (let i = 0; i < numPoints; i++) {
-        let angle = i * (2 * Math.PI / numPoints);
-        let noise = 1 + 0.2 * Math.sin(angle * 3 + phase1) + 0.1 * Math.sin(angle * 7 + phase2);
-        let r = radius * noise;
-        points.push({ angle: angle * 180 / Math.PI, distance: r });
-      }
-      return points;
-    }
-    
-    // ======================================
-    // ASTEROID CLASS (MORE DETAILED AND REALISTIC)
-    // ======================================
+    // ----------------------------
+    // ASTEROID CLASS
+    // ----------------------------
     class Asteroid {
       constructor(pos, size) {
         this.pos = pos.clone();
@@ -492,9 +473,9 @@
         const numPoints = Math.floor(10 + Math.random() * 7);
         this.points = generateAsteroidPoints(this.radius, numPoints);
       }
-      update() {
-        this.pos = this.pos.add(this.velocity);
-        this.angle = (this.angle + this.rotationSpeed) % 360;
+      update(factor) {
+        this.pos = this.pos.add(this.velocity.multiply(factor));
+        this.angle = (this.angle + this.rotationSpeed * factor) % 360;
         if (this.pos.x < 0) this.pos.x = width;
         if (this.pos.x > width) this.pos.x = 0;
         if (this.pos.y < 0) this.pos.y = height;
@@ -522,19 +503,34 @@
       }
     }
     
-    // ======================================
-    // POWER-UP CLASS (CANISTER STYLE WITH GLOWING GREEN HALO)
-    // ======================================
+    // ----------------------------
+    // HELPER FUNCTION: GENERATE ASTEROID POINTS
+    // ----------------------------
+    function generateAsteroidPoints(radius, numPoints) {
+      const points = [];
+      const phase1 = Math.random() * 2 * Math.PI;
+      const phase2 = Math.random() * 2 * Math.PI;
+      for (let i = 0; i < numPoints; i++) {
+        let angle = i * (2 * Math.PI / numPoints);
+        let noise = 1 + 0.2 * Math.sin(angle * 3 + phase1) + 0.1 * Math.sin(angle * 7 + phase2);
+        let r = radius * noise;
+        points.push({ angle: angle * 180 / Math.PI, distance: r });
+      }
+      return points;
+    }
+    
+    // ----------------------------
+    // POWER-UP CLASS
+    // ----------------------------
     class PowerUp {
       constructor(pos) {
         this.pos = pos.clone();
-        // Randomly choose power-up type from three options: "spread", "dual", or "omni".
         const types = ["spread", "dual", "omni"];
         this.type = types[Math.floor(Math.random() * types.length)];
         this.velocity = new Vector2(Math.random() * 2 - 1, Math.random() * 2 - 1);
       }
-      update() {
-        this.pos = this.pos.add(this.velocity);
+      update(factor) {
+        this.pos = this.pos.add(this.velocity.multiply(factor));
         if (this.pos.x < 0) this.pos.x = width;
         if (this.pos.x > width) this.pos.x = 0;
         if (this.pos.y < 0) this.pos.y = height;
@@ -543,7 +539,6 @@
       draw(ctx) {
         ctx.save();
         ctx.translate(this.pos.x, this.pos.y);
-        // Draw glowing green halo.
         let glow = ctx.createRadialGradient(0, 0, 0, 0, 0, 20);
         glow.addColorStop(0, "rgba(0,255,0,0.8)");
         glow.addColorStop(1, "rgba(0,255,0,0)");
@@ -551,7 +546,6 @@
         ctx.beginPath();
         ctx.arc(0, 0, 20, 0, 2 * Math.PI);
         ctx.fill();
-        // Draw the canister body.
         const canWidth = 12;
         const canHeight = 20;
         ctx.fillStyle = "#777";
@@ -577,9 +571,9 @@
       }
     }
     
-    // ======================================
-    // COLLISION HANDLING (ELASTIC) FOR ASTEROIDS
-    // ======================================
+    // ----------------------------
+    // COLLISION HANDLING FOR ASTEROIDS
+    // ----------------------------
     function resolveCollision(a1, a2) {
       let dx = a1.pos.x - a2.pos.x;
       let dy = a1.pos.y - a2.pos.y;
@@ -615,9 +609,9 @@
       }
     }
     
-    // ======================================
+    // ----------------------------
     // GLOBAL GAME OBJECTS
-    // ======================================
+    // ----------------------------
     let spaceship = new Spaceship(new Vector2(width / 2, height / 2));
     let bullets = [];
     let asteroids = spawnAsteroids(5);
@@ -637,76 +631,73 @@
       return asteroidsArray;
     }
     
-    // ======================================
-    // GAME UPDATE & DRAWING FUNCTIONS
-    // ======================================
-    function updateGame() {
+    // ----------------------------
+    // GAME UPDATE & DRAWING FUNCTIONS (using time-delta factor)
+    // ----------------------------
+    let lastTime = performance.now();
+    function gameLoop(now) {
+      let dt = (now - lastTime) / 1000; // in seconds
+      lastTime = now;
+      let factor = dt * 60; // factor relative to 60 FPS baseline
       if (!gameOver && !showWelcome) {
-        spaceship.update();
+        spaceship.update(factor);
         
-        // LEVEL-UP LOGIC:
-        // Increase the level when the score reaches the next threshold.
         if (score >= nextLevelScore) {
           currentLevel++;
           nextLevelScore += LEVEL_UP_SCORE;
           showLevelDisplay = true;
           levelDisplayTimer = 120;
-          // Instead of respawning, add extra asteroids.
-          // Total desired asteroids = 5 + (currentLevel - 1) * 2.
           let desiredCount = 5 + (currentLevel - 1) * 2;
           let additionalAsteroids = desiredCount - asteroids.length;
           if (additionalAsteroids < 0) additionalAsteroids = 0;
           asteroids = asteroids.concat(spawnAsteroids(additionalAsteroids));
         }
         
-        // Shooting logic:
         if (keys[" "] && shootCooldown <= 0) {
           if (spaceship.powerupActive) {
             if (spaceship.powerupType === "spread") {
               bullets.push(new Bullet(spaceship.pos, spaceship.angle));
               bullets.push(new Bullet(spaceship.pos, spaceship.angle + 15));
               bullets.push(new Bullet(spaceship.pos, spaceship.angle - 15));
-              shootCooldown = 5;
+              shootCooldown = SHOOT_COOLDOWN_POWERUP;
             } else if (spaceship.powerupType === "dual") {
               let rad = spaceship.angle * Math.PI / 180;
               let sideOffset = new Vector2(Math.cos(rad), Math.sin(rad)).multiply(6);
               bullets.push(new Bullet(spaceship.pos.add(sideOffset), spaceship.angle));
               bullets.push(new Bullet(spaceship.pos.subtract(sideOffset), spaceship.angle));
-              shootCooldown = 5;
+              shootCooldown = SHOOT_COOLDOWN_POWERUP;
             } else if (spaceship.powerupType === "omni") {
-              // Shoot bullets in four directions relative to the ship's current angle.
               bullets.push(new Bullet(spaceship.pos, spaceship.angle));
               bullets.push(new Bullet(spaceship.pos, spaceship.angle + 90));
               bullets.push(new Bullet(spaceship.pos, spaceship.angle + 180));
               bullets.push(new Bullet(spaceship.pos, spaceship.angle + 270));
-              shootCooldown = 5;
+              shootCooldown = SHOOT_COOLDOWN_POWERUP;
             }
             shootSound.currentTime = 0;
             shootSound.play();
           } else {
             bullets.push(new Bullet(spaceship.pos, spaceship.angle));
-            shootCooldown = 15;
+            shootCooldown = SHOOT_COOLDOWN_NORMAL;
             shootSound.currentTime = 0;
             shootSound.play();
           }
         }
-        if (shootCooldown > 0) { shootCooldown--; }
+        if (shootCooldown > 0) { shootCooldown -= factor; }
     
         for (let i = bullets.length - 1; i >= 0; i--) {
-          bullets[i].update();
+          bullets[i].update(factor);
           if (bullets[i].life <= 0) { bullets.splice(i, 1); }
         }
     
-        for (let asteroid of asteroids) { asteroid.update(); }
+        for (let asteroid of asteroids) { asteroid.update(factor); }
         handleAsteroidCollisions(asteroids);
-        for (let pu of powerups) { pu.update(); }
+        for (let pu of powerups) { pu.update(factor); }
     
         for (let i = particles.length - 1; i >= 0; i--) {
-          particles[i].update();
+          particles[i].update(factor);
           if (particles[i].life <= 0) { particles.splice(i, 1); }
         }
     
-        // Bullet-asteroid collisions:
         for (let i = bullets.length - 1; i >= 0; i--) {
           let bullet = bullets[i];
           for (let j = asteroids.length - 1; j >= 0; j--) {
@@ -749,59 +740,51 @@
           if (spaceship.pos.distanceTo(pu.pos) < spaceship.radius + 10) {
             spaceship.powerupActive = true;
             spaceship.powerupTimer = POWERUP_DURATION;
-            // Set the ship's power-up type to the one from the collected power-up.
             spaceship.powerupType = pu.type;
             powerups.splice(i, 1);
           }
         }
     
-        // Fallback: If all asteroids are cleared (and no level up occurred), respawn based on current level.
         if (asteroids.length === 0) { 
           let desiredCount = 5 + (currentLevel - 1) * 2;
           asteroids = spawnAsteroids(desiredCount); 
         }
       }
+      drawGame();
+      requestAnimationFrame(gameLoop);
     }
+    gameLoop(performance.now());
     
     function drawGame() {
       ctx.fillStyle = "black";
-      ctx.fillRect(0, 0, width, height);
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
     
-      // Draw explosion particles.
-      for (let particle of particles) {
-        particle.draw(ctx);
-      }
-    
+      for (let particle of particles) { particle.draw(ctx); }
       spaceship.draw(ctx);
       for (let bullet of bullets) { bullet.draw(ctx); }
       for (let asteroid of asteroids) { asteroid.draw(ctx); }
       for (let pu of powerups) { pu.draw(ctx); }
       
-      // Display score and level info.
       ctx.fillStyle = "white";
-      ctx.font = (width < 600 ? "28px Arial" : "20px Arial");
+      ctx.font = (canvas.width < 600 ? "28px Arial" : "20px Arial");
       ctx.textAlign = "left";
       ctx.fillText("Score: " + score, 10, 30);
-      ctx.fillText("Level: " + currentLevel, width - 120, 30);
+      ctx.fillText("Level: " + currentLevel, canvas.width - 120, 30);
       
       if (spaceship.powerupActive) {
         ctx.fillStyle = "green";
         ctx.fillText("Power-Up Active!", 10, 60);
       }
       
-      // Display a level overlay message when a new level is reached.
       if (showLevelDisplay) {
         ctx.fillStyle = "yellow";
         ctx.font = "40px Courier New";
         ctx.textAlign = "center";
-        ctx.fillText("LEVEL " + currentLevel, width / 2, height / 2);
-        levelDisplayTimer--;
-        if (levelDisplayTimer <= 0) {
-          showLevelDisplay = false;
-        }
+        ctx.fillText("LEVEL " + currentLevel, canvas.width / 2, canvas.height / 2);
+        levelDisplayTimer -= 1;
+        if (levelDisplayTimer <= 0) { showLevelDisplay = false; }
       }
       
-      // Display game over overlay if gameOver.
       if (gameOver) {
         const leaderboard = JSON.parse(localStorage.getItem("leaderboard"));
         const container = document.getElementById("gameOverContainer");
@@ -823,7 +806,7 @@
       leaderboardUpdated = false;
       score = 0;
       currentLevel = 1;
-      nextLevelScore = LEVEL_UP_SCORE; // Reset the next level score threshold.
+      nextLevelScore = LEVEL_UP_SCORE;
       spaceship = new Spaceship(new Vector2(width / 2, height / 2));
       bullets = [];
       asteroids = spawnAsteroids(5);
@@ -833,19 +816,6 @@
       playAgainButton.style.display = "none";
       document.getElementById("gameOverContainer").style.display = "none";
     }
-    
-    function gameLoop() {
-      if (!showWelcome) {
-        updateGame();
-        drawGame();
-      }
-      requestAnimationFrame(gameLoop);
-    }
-    gameLoop();
-
-    // ======================================
-    // (Enemy Ship & Enemy Bullet classes have been removed)
-    // ======================================
   </script>
 </body>
 </html>
