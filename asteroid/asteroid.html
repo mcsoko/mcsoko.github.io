@@ -19,7 +19,6 @@
       width: 100%;
       height: 100%;
     }
-    
     /* Game Over & Leaderboard Container */
     #gameOverContainer {
       display: none;
@@ -37,7 +36,6 @@
       z-index: 300;
       font-family: 'Courier New', monospace;
     }
-    
     /* Welcome Screen Overlay */
     #welcomeScreen {
       position: absolute;
@@ -59,7 +57,13 @@
     }
     #welcomeScreen p {
       font-size: 24px;
-      margin: 0 0 40px 0;
+      margin: 0 0 20px 0;
+    }
+    /* Container for displaying the leaderboard on the welcome screen */
+    #welcomeLeaderboard {
+      margin-bottom: 20px;
+      max-height: 300px;
+      overflow-y: auto;
     }
     /* Start Game button */
     #startButton {
@@ -67,7 +71,6 @@
       padding: 10px 20px;
       cursor: pointer;
     }
-    
     /* On-screen mobile controls */
     #movement-controls, #shoot-controls {
       position: fixed;
@@ -93,7 +96,6 @@
       color: white;
       outline: none;
     }
-    /* Larger, more transparent controls for mobile devices */
     @media (max-width: 600px) {
       .control-button {
         width: 150px;
@@ -102,13 +104,11 @@
         background: rgba(255,255,255,0.2);
       }
     }
-    /* Hide controls on devices with a fine pointer */
     @media (hover: hover) and (pointer: fine) {
       #movement-controls, #shoot-controls {
         display: none;
       }
     }
-    
     /* Play Again Button */
     #playAgainButton {
       position: absolute;
@@ -122,14 +122,69 @@
       cursor: pointer;
     }
   </style>
+  
+  <!-- Firebase libraries (compat versions for simplicity) -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+  <script>
+    // TODO: Replace with your Firebase project configuration.
+    const firebaseConfig = {
+      apiKey: "AIzaSyCd4CZi0hhyws2u9ms1TL1HVBnhFZx8HcA",
+      authDomain: "meteor-madness-75c9d.firebaseapp.com",
+      databaseURL: "https://meteor-madness-75c9d-default-rtdb.firebaseio.com",
+      projectId: "meteor-madness-75c9d",
+      storageBucket: "meteor-madness-75c9d.firebasestorage.app",
+      messagingSenderId: "59442741917",
+      appId: "G-FM1KF56JZF"
+    };
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+    
+    // Sign in anonymously so that the auth-based security rules pass.
+    firebase.auth().signInAnonymously().catch(function(error) {
+      console.error("Anonymous sign-in failed:", error);
+    });
+    
+    // Write the player's score and initials to Firebase.
+    function updateLeaderboardOnline(score, initials) {
+      const leaderboardRef = database.ref('leaderboard');
+      leaderboardRef.push({
+        score: score,
+        initials: initials,
+        date: new Date().toLocaleString()
+      });
+    }
+    
+    // Retrieve the top 10 leaderboard entries.
+    function getLeaderboardOnline(callback) {
+      const leaderboardRef = database.ref('leaderboard').orderByChild('score').limitToLast(10);
+      leaderboardRef.once('value', snapshot => {
+        const data = snapshot.val();
+        const leaderboardArray = [];
+        for (let key in data) {
+          leaderboardArray.push(data[key]);
+        }
+        leaderboardArray.sort((a, b) => b.score - a.score);
+        callback(leaderboardArray);
+      });
+    }
+  </script>
 </head>
 <body>
   <canvas id="gameCanvas"></canvas>
-  
-  <!-- Combined Game Over & Leaderboard Overlay -->
   <div id="gameOverContainer"></div>
   
-  <!-- On-screen controls for mobile devices -->
+  <!-- Welcome Screen (shown initially) -->
+  <div id="welcomeScreen">
+    <h1>METEOR MADNESS</h1>
+    <p>Blast through space, one meteor at a time!</p>
+    <!-- Container for displaying the leaderboard on the welcome screen -->
+    <div id="welcomeLeaderboard"><p>Loading leaderboard...</p></div>
+    <button id="startButton">Start Game</button>
+  </div>
+  
   <div id="movement-controls">
     <button id="btn-left" class="control-button">◀</button>
     <button id="btn-thrust" class="control-button">▲</button>
@@ -138,35 +193,25 @@
   <div id="shoot-controls">
     <button id="btn-shoot" class="control-button">✦</button>
   </div>
-  
-  <!-- Play Again Button -->
   <button id="playAgainButton">Play Again</button>
   
-  <!-- Welcome Screen Overlay -->
-  <div id="welcomeScreen">
-    <h1>METEOR MADNESS</h1>
-    <p>Blast through space, one meteor at a time!</p>
-    <button id="startButton">Start Game</button>
-  </div>
-  
   <script>
-    // ----------------------------
-    // CONFIGURATION VARIABLES
-    // ----------------------------
-    // These variables allow you to adjust player behavior.
-    const PLAYER_ROTATION_SPEED = 7;      // Degrees per frame at 60 FPS baseline.
-    const PLAYER_ACCELERATION = 0.2;      // Acceleration when thrusting.
-    const SHOOT_COOLDOWN_NORMAL = 15;     // Frames delay between shots normally.
-    const SHOOT_COOLDOWN_POWERUP = 5;     // Frames delay between shots when a power-up is active.
+    // ------------------------------------------
+    // CONFIGURATION VARIABLES (Gameplay Tweaks)
+    // ------------------------------------------
+    const PLAYER_ROTATION_SPEED = 7;      
+    const PLAYER_ACCELERATION = 0.3;      
+    const SHOOT_COOLDOWN_NORMAL = 15;     
+    const SHOOT_COOLDOWN_POWERUP = 5;     
     
-    // ----------------------------
+    // ------------------------------------------
     // Mobile Detection and Canvas Setup
-    // ----------------------------
+    // ------------------------------------------
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     const canvas = document.getElementById("gameCanvas");
     const ctx = canvas.getContext("2d");
     
-    // Declare global width and height.
+    // Global width and height (used for screen wrapping)
     let width, height;
     
     function resizeCanvas() {
@@ -175,7 +220,7 @@
         height = window.innerHeight * 0.5;
         canvas.width = width;
         canvas.height = height;
-        ctx.setTransform(2, 0, 0, 2, 0, 0); // Scale context up so drawing remains full-screen.
+        ctx.setTransform(2, 0, 0, 2, 0, 0);
       } else {
         width = window.innerWidth;
         height = window.innerHeight;
@@ -187,9 +232,9 @@
     resizeCanvas();
     window.addEventListener("resize", resizeCanvas);
     
-    // ----------------------------
-    // GLOBAL VARIABLES & GAME CONFIGURATION
-    // ----------------------------
+    // ------------------------------------------
+    // GLOBAL GAME VARIABLES & CONFIGURATION
+    // ------------------------------------------
     const LEVEL_UP_SCORE = 1000;
     let currentLevel = 1;
     let nextLevelScore = LEVEL_UP_SCORE;
@@ -204,41 +249,48 @@
     let showLevelDisplay = false;
     let levelDisplayTimer = 0;
     
-    const POWERUP_DURATION = 500;  // Duration (in frames at 60 FPS baseline) for active power-ups.
-    // Power-up types: "spread", "dual", or "omni".
+    const POWERUP_DURATION = 500;
+    // Power-up types: "spread", "dual", or "omni"
     
-    // ----------------------------
+    // Global variable to cache the online leaderboard (so we fetch it only once)
+    let onlineLeaderboard = null;
+    // Flag to ensure the game-over leaderboard form is displayed only once.
+    let leaderboardFormDisplayed = false;
+    
+    // ------------------------------------------
     // SOUND EFFECTS
-    // ----------------------------
+    // ------------------------------------------
     const shootSound = new Audio('shoot.mp3');
     const explosionSound = new Audio('explosion.mp3');
     const powerupSound = new Audio('powerup.mp3');
     const gameoverSound = new Audio('gameover.mp3');
     
-    // ----------------------------
-    // LEADERBOARD FUNCTIONS
-    // ----------------------------
-    function updateLeaderboard(currentScore) {
-      let leaderboard = JSON.parse(localStorage.getItem("leaderboard")) || [];
-      leaderboard.push({ score: currentScore, date: new Date().toLocaleString() });
-      leaderboard.sort((a, b) => b.score - a.score);
-      leaderboard = leaderboard.slice(0, 10);
-      localStorage.setItem("leaderboard", JSON.stringify(leaderboard));
-      return leaderboard;
-    }
-    
+    // ------------------------------------------
+    // LEADERBOARD DISPLAY HELPER
+    // ------------------------------------------
     function generateLeaderboardHTML(leaderboard) {
       let html = "<h2>Leaderboard</h2><ol>";
       leaderboard.forEach(entry => {
-        html += `<li>${entry.score} - ${entry.date}</li>`;
+        html += `<li>${entry.initials}: ${entry.score} (${entry.date})</li>`;
       });
       html += "</ol>";
       return html;
     }
     
-    // ----------------------------
+    // ------------------------------------------
+    // Display Leaderboard on the Welcome Screen
+    // ------------------------------------------
+    function displayWelcomeLeaderboard() {
+      getLeaderboardOnline((leaderboard) => {
+        document.getElementById("welcomeLeaderboard").innerHTML = generateLeaderboardHTML(leaderboard);
+      });
+    }
+    // Call once when the page loads.
+    displayWelcomeLeaderboard();
+    
+    // ------------------------------------------
     // WELCOME SCREEN HANDLING
-    // ----------------------------
+    // ------------------------------------------
     const welcomeScreen = document.getElementById("welcomeScreen");
     const startButton = document.getElementById("startButton");
     startButton.addEventListener("click", () => {
@@ -246,16 +298,16 @@
       welcomeScreen.style.display = "none";
     });
     
-    // ----------------------------
+    // ------------------------------------------
     // GLOBAL KEYBOARD HANDLING (DESKTOP)
-    // ----------------------------
+    // ------------------------------------------
     const keys = {};
     window.addEventListener("keydown", e => { keys[e.key] = true; });
     window.addEventListener("keyup", e => { keys[e.key] = false; });
     
-    // ----------------------------
+    // ------------------------------------------
     // ON-SCREEN CONTROLS FOR MOBILE
-    // ----------------------------
+    // ------------------------------------------
     function setupControlButton(btnId, keyName) {
       const btn = document.getElementById(btnId);
       btn.addEventListener("touchstart", e => { e.preventDefault(); keys[keyName] = true; });
@@ -268,20 +320,20 @@
     setupControlButton("btn-thrust", "ArrowUp");
     setupControlButton("btn-shoot", " ");
     
-    // ----------------------------
+    // ------------------------------------------
     // PLAY AGAIN BUTTON HANDLING
-    // ----------------------------
+    // ------------------------------------------
     const playAgainButton = document.getElementById("playAgainButton");
     playAgainButton.addEventListener("click", resetGame);
     
-    // ----------------------------
+    // ------------------------------------------
     // GLOBAL ARRAY FOR PARTICLES
-    // ----------------------------
+    // ------------------------------------------
     let particles = [];
     
-    // ----------------------------
+    // ------------------------------------------
     // 2D VECTOR CLASS
-    // ----------------------------
+    // ------------------------------------------
     class Vector2 {
       constructor(x, y) { this.x = x; this.y = y; }
       clone() { return new Vector2(this.x, this.y); }
@@ -292,9 +344,9 @@
       distanceTo(v) { return Math.sqrt((this.x - v.x) ** 2 + (this.y - v.y) ** 2); }
     }
     
-    // ----------------------------
+    // ------------------------------------------
     // PARTICLE CLASS (Crisp, Extended-Lifespan)
-    // ----------------------------
+    // ------------------------------------------
     class Particle {
       constructor(pos) {
         this.pos = pos.clone();
@@ -303,7 +355,7 @@
         this.velocity = new Vector2(Math.cos(angle), Math.sin(angle)).multiply(speed);
         this.life = 80;
         this.initialLife = this.life;
-        this.radius = 3;
+        this.radius = 1.5;
         const colors = ["#ff4d4d", "#ff944d", "#ffff4d", "#94ff4d", "#4dffff", "#4d94ff", "#ff4dff"];
         this.color = colors[Math.floor(Math.random() * colors.length)];
       }
@@ -331,9 +383,9 @@
       explosionSound.play();
     }
     
-    // ----------------------------
+    // ------------------------------------------
     // SPACESHIP CLASS (With Power-Up)
-    // ----------------------------
+    // ------------------------------------------
     class Spaceship {
       constructor(pos) {
         this.pos = pos;
@@ -428,9 +480,9 @@
       }
     }
     
-    // ----------------------------
+    // ------------------------------------------
     // BULLET CLASS
-    // ----------------------------
+    // ------------------------------------------
     class Bullet {
       constructor(pos, angle) {
         this.pos = pos.clone();
@@ -456,9 +508,9 @@
       }
     }
     
-    // ----------------------------
+    // ------------------------------------------
     // ASTEROID CLASS
-    // ----------------------------
+    // ------------------------------------------
     class Asteroid {
       constructor(pos, size) {
         this.pos = pos.clone();
@@ -503,9 +555,9 @@
       }
     }
     
-    // ----------------------------
+    // ------------------------------------------
     // HELPER FUNCTION: GENERATE ASTEROID POINTS
-    // ----------------------------
+    // ------------------------------------------
     function generateAsteroidPoints(radius, numPoints) {
       const points = [];
       const phase1 = Math.random() * 2 * Math.PI;
@@ -519,9 +571,9 @@
       return points;
     }
     
-    // ----------------------------
+    // ------------------------------------------
     // POWER-UP CLASS
-    // ----------------------------
+    // ------------------------------------------
     class PowerUp {
       constructor(pos) {
         this.pos = pos.clone();
@@ -571,9 +623,9 @@
       }
     }
     
-    // ----------------------------
+    // ------------------------------------------
     // COLLISION HANDLING FOR ASTEROIDS
-    // ----------------------------
+    // ------------------------------------------
     function resolveCollision(a1, a2) {
       let dx = a1.pos.x - a2.pos.x;
       let dy = a1.pos.y - a2.pos.y;
@@ -609,9 +661,9 @@
       }
     }
     
-    // ----------------------------
+    // ------------------------------------------
     // GLOBAL GAME OBJECTS
-    // ----------------------------
+    // ------------------------------------------
     let spaceship = new Spaceship(new Vector2(width / 2, height / 2));
     let bullets = [];
     let asteroids = spawnAsteroids(5);
@@ -631,14 +683,15 @@
       return asteroidsArray;
     }
     
-    // ----------------------------
-    // GAME UPDATE & DRAWING FUNCTIONS (using time-delta factor)
-    // ----------------------------
+    // ------------------------------------------
+    // GAME LOOP & DRAWING (Time-Delta Based)
+    // ------------------------------------------
     let lastTime = performance.now();
     function gameLoop(now) {
-      let dt = (now - lastTime) / 1000; // in seconds
+      let dt = (now - lastTime) / 1000;
       lastTime = now;
-      let factor = dt * 60; // factor relative to 60 FPS baseline
+      let factor = dt * 60;
+      
       if (!gameOver && !showWelcome) {
         spaceship.update(factor);
         
@@ -725,7 +778,7 @@
           if (spaceship.pos.distanceTo(asteroid.pos) < asteroid.radius + spaceship.radius) {
             if (!gameOver) {
               gameOver = true;
-              updateLeaderboard(score);
+              // Do not automatically submit a score; wait for the user to enter initials.
               if (!deathSoundPlayed) {
                 gameoverSound.currentTime = 0;
                 gameoverSound.play();
@@ -786,13 +839,36 @@
       }
       
       if (gameOver) {
-        const leaderboard = JSON.parse(localStorage.getItem("leaderboard"));
         const container = document.getElementById("gameOverContainer");
-        container.innerHTML = `
-              <h1>GAME OVER</h1>
-              <p>Final Score: ${score}</p>
-              ${generateLeaderboardHTML(leaderboard)}
-        `;
+        // If the score hasn't been submitted (onlineLeaderboard is null) and the form hasn't been displayed yet, show the initials form.
+        if (onlineLeaderboard === null && !leaderboardFormDisplayed) {
+          container.innerHTML = `
+            <h1>GAME OVER</h1>
+            <p>Final Score: ${score}</p>
+            <p>Enter your initials (max 3 letters):</p>
+            <input id="initialsInput" type="text" maxlength="3" placeholder="ABC" />
+            <button id="submitScoreBtn">Submit Score</button>
+          `;
+          leaderboardFormDisplayed = true;
+          document.getElementById("submitScoreBtn").addEventListener("click", () => {
+            const initials = document.getElementById("initialsInput").value;
+            updateLeaderboardOnline(score, initials);
+            getLeaderboardOnline((leaderboard) => {
+              onlineLeaderboard = leaderboard;
+              container.innerHTML = `
+                <h1>GAME OVER</h1>
+                <p>Final Score: ${score}</p>
+                ${generateLeaderboardHTML(onlineLeaderboard)}
+              `;
+            });
+          });
+        } else if (onlineLeaderboard !== null) {
+          container.innerHTML = `
+            <h1>GAME OVER</h1>
+            <p>Final Score: ${score}</p>
+            ${generateLeaderboardHTML(onlineLeaderboard)}
+          `;
+        }
         container.style.display = "block";
         playAgainButton.style.display = "block";
       } else {
@@ -807,6 +883,8 @@
       score = 0;
       currentLevel = 1;
       nextLevelScore = LEVEL_UP_SCORE;
+      onlineLeaderboard = null; // Reset the leaderboard cache.
+      leaderboardFormDisplayed = false; // Reset the form display flag.
       spaceship = new Spaceship(new Vector2(width / 2, height / 2));
       bullets = [];
       asteroids = spawnAsteroids(5);
