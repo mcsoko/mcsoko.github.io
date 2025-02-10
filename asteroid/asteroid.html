@@ -147,28 +147,54 @@
   </div>
   
   <script>
-    // ======================================
-    // CONFIGURATION VARIABLES
-    // ======================================
-    const POWERUP_SPAWN_CHANCE = 0.2;  // Chance an asteroid drops a power-up when destroyed
-    const POWERUP_DURATION = 300;      // Duration (in frames) that a power-up remains active
-    const DUAL_GUN_CHANCE = 0.5;         // Probability that a collected power-up is the dual gun type
+    // Get a reference to the canvas element and its 2D context.
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+
+    // Set the canvas dimensions.
+    let width = window.innerWidth;
+    let height = window.innerHeight;
+    canvas.width = width;
+    canvas.height = height;
+
+    window.addEventListener("resize", () => {
+      width = window.innerWidth;
+      height = window.innerHeight;
+      canvas.width = width;
+      canvas.height = height;
+    });
     
     // ======================================
-    // GLOBAL VARIABLES & CANVAS SETUP
+    // GLOBAL VARIABLES & CONFIGURATION
     // ======================================
+    const LEVEL_UP_SCORE = 1000;          // Score threshold for each level.
+    let currentLevel = 1;
+    // nextLevelScore defines the score needed for the next level.
+    let nextLevelScore = LEVEL_UP_SCORE;
+
+    // (Enemy-related arrays removed.)
+
+    // Other global variables.
     let showWelcome = true;
     let deathSoundPlayed = false;
     let score = 0;
     let gameOver = false;
     let shootCooldown = 0;
+    let leaderboardUpdated = false;
     
-    const canvas = document.getElementById("gameCanvas");
-    const ctx = canvas.getContext("2d");
-    let width = window.innerWidth;
-    let height = window.innerHeight;
-    canvas.width = width;
-    canvas.height = height;
+    // Variables for displaying a level-up message.
+    let showLevelDisplay = false;
+    let levelDisplayTimer = 0;
+    
+    // ======================================
+    // CONFIGURATION VARIABLES
+    // ======================================
+    const POWERUP_DURATION = 500;      // Duration (in frames) that a power-up remains active
+    // There are now three power-up types: "spread", "dual", and "omni".
+    
+    // ======================================
+    // GLOBAL VARIABLES & CANVAS SETUP
+    // ======================================
     window.addEventListener("resize", () => {
       width = window.innerWidth;
       height = window.innerHeight;
@@ -263,7 +289,7 @@
     }
     
     // ======================================
-    // PARTICLE CLASS (EXPLOSION EFFECTS)
+    // PARTICLE CLASS (Enhanced, Crisp Explosion Effects)
     // ======================================
     class Particle {
       constructor(pos) {
@@ -271,10 +297,13 @@
         let angle = Math.random() * 2 * Math.PI;
         let speed = 2 + Math.random() * 2;
         this.velocity = new Vector2(Math.cos(angle), Math.sin(angle)).multiply(speed);
-        this.life = 30;
+        // Increase lifespan and reduce size for a crisper look.
+        this.life = 100;
         this.initialLife = this.life;
-        this.radius = 3;
-        this.color = "orange";
+        this.radius = 1.5;  // Smaller than before for a crisper appearance.
+        // Vibrant colors remain.
+        const colors = ["#ff4d4d", "#ff944d", "#ffff4d", "#94ff4d", "#4dffff", "#4d94ff", "#ff4dff"];
+        this.color = colors[Math.floor(Math.random() * colors.length)];
       }
       update() {
         this.pos = this.pos.add(this.velocity);
@@ -292,7 +321,8 @@
     }
     
     function spawnExplosion(pos, size) {
-      let count = 10 + Math.floor(Math.random() * 6);
+      // Increase particle count for more dramatic explosions.
+      let count = 20 + Math.floor(Math.random() * 10);
       for (let i = 0; i < count; i++) {
         particles.push(new Particle(pos));
       }
@@ -314,7 +344,7 @@
         this.thrusting = false;
         this.powerupActive = false;
         this.powerupTimer = 0;
-        this.powerupType = null; // "spread" or "dual"
+        this.powerupType = null; // "spread", "dual", or "omni"
       }
       update() {
         if (keys["ArrowLeft"]) { this.angle += 5; }
@@ -498,8 +528,9 @@
     class PowerUp {
       constructor(pos) {
         this.pos = pos.clone();
-        // Randomly choose power-up type: "spread" or "dual"
-        this.type = (Math.random() < 0.5) ? "spread" : "dual";
+        // Randomly choose power-up type from three options: "spread", "dual", or "omni".
+        const types = ["spread", "dual", "omni"];
+        this.type = types[Math.floor(Math.random() * types.length)];
         this.velocity = new Vector2(Math.random() * 2 - 1, Math.random() * 2 - 1);
       }
       update() {
@@ -612,6 +643,22 @@
     function updateGame() {
       if (!gameOver && !showWelcome) {
         spaceship.update();
+        
+        // LEVEL-UP LOGIC:
+        // Increase the level when the score reaches the next threshold.
+        if (score >= nextLevelScore) {
+          currentLevel++;
+          nextLevelScore += LEVEL_UP_SCORE;
+          showLevelDisplay = true;
+          levelDisplayTimer = 120;
+          // Instead of respawning, add extra asteroids.
+          // Total desired asteroids = 5 + (currentLevel - 1) * 2.
+          let desiredCount = 5 + (currentLevel - 1) * 2;
+          let additionalAsteroids = desiredCount - asteroids.length;
+          if (additionalAsteroids < 0) additionalAsteroids = 0;
+          asteroids = asteroids.concat(spawnAsteroids(additionalAsteroids));
+        }
+        
         // Shooting logic:
         if (keys[" "] && shootCooldown <= 0) {
           if (spaceship.powerupActive) {
@@ -625,6 +672,13 @@
               let sideOffset = new Vector2(Math.cos(rad), Math.sin(rad)).multiply(6);
               bullets.push(new Bullet(spaceship.pos.add(sideOffset), spaceship.angle));
               bullets.push(new Bullet(spaceship.pos.subtract(sideOffset), spaceship.angle));
+              shootCooldown = 5;
+            } else if (spaceship.powerupType === "omni") {
+              // Shoot bullets in four directions relative to the ship's current angle.
+              bullets.push(new Bullet(spaceship.pos, spaceship.angle));
+              bullets.push(new Bullet(spaceship.pos, spaceship.angle + 90));
+              bullets.push(new Bullet(spaceship.pos, spaceship.angle + 180));
+              bullets.push(new Bullet(spaceship.pos, spaceship.angle + 270));
               shootCooldown = 5;
             }
             shootSound.currentTime = 0;
@@ -662,7 +716,7 @@
               bullets.splice(i, 1);
               asteroids.splice(j, 1);
               score += 100;
-              if (Math.random() < POWERUP_SPAWN_CHANCE) {
+              if (Math.random() < 0.2) {
                 powerups.push(new PowerUp(asteroid.pos));
                 powerupSound.currentTime = 0;
                 powerupSound.play();
@@ -678,11 +732,14 @@
     
         for (let asteroid of asteroids) {
           if (spaceship.pos.distanceTo(asteroid.pos) < asteroid.radius + spaceship.radius) {
-            gameOver = true;
-            if (!deathSoundPlayed) {
-              gameoverSound.currentTime = 0;
-              gameoverSound.play();
-              deathSoundPlayed = true;
+            if (!gameOver) {
+              gameOver = true;
+              updateLeaderboard(score);
+              if (!deathSoundPlayed) {
+                gameoverSound.currentTime = 0;
+                gameoverSound.play();
+                deathSoundPlayed = true;
+              }
             }
           }
         }
@@ -692,12 +749,17 @@
           if (spaceship.pos.distanceTo(pu.pos) < spaceship.radius + 10) {
             spaceship.powerupActive = true;
             spaceship.powerupTimer = POWERUP_DURATION;
-            spaceship.powerupType = (Math.random() < DUAL_GUN_CHANCE) ? "dual" : "spread";
+            // Set the ship's power-up type to the one from the collected power-up.
+            spaceship.powerupType = pu.type;
             powerups.splice(i, 1);
           }
         }
     
-        if (asteroids.length === 0) { asteroids = spawnAsteroids(5); }
+        // Fallback: If all asteroids are cleared (and no level up occurred), respawn based on current level.
+        if (asteroids.length === 0) { 
+          let desiredCount = 5 + (currentLevel - 1) * 2;
+          asteroids = spawnAsteroids(desiredCount); 
+        }
       }
     }
     
@@ -714,22 +776,39 @@
       for (let bullet of bullets) { bullet.draw(ctx); }
       for (let asteroid of asteroids) { asteroid.draw(ctx); }
       for (let pu of powerups) { pu.draw(ctx); }
-    
+      
+      // Display score and level info.
       ctx.fillStyle = "white";
       ctx.font = (width < 600 ? "28px Arial" : "20px Arial");
+      ctx.textAlign = "left";
       ctx.fillText("Score: " + score, 10, 30);
+      ctx.fillText("Level: " + currentLevel, width - 120, 30);
+      
       if (spaceship.powerupActive) {
         ctx.fillStyle = "green";
         ctx.fillText("Power-Up Active!", 10, 60);
       }
-    
-      // When game is over, update and show the combined overlay.
+      
+      // Display a level overlay message when a new level is reached.
+      if (showLevelDisplay) {
+        ctx.fillStyle = "yellow";
+        ctx.font = "40px Courier New";
+        ctx.textAlign = "center";
+        ctx.fillText("LEVEL " + currentLevel, width / 2, height / 2);
+        levelDisplayTimer--;
+        if (levelDisplayTimer <= 0) {
+          showLevelDisplay = false;
+        }
+      }
+      
+      // Display game over overlay if gameOver.
       if (gameOver) {
+        const leaderboard = JSON.parse(localStorage.getItem("leaderboard"));
         const container = document.getElementById("gameOverContainer");
         container.innerHTML = `
-          <h1>GAME OVER</h1>
-          <p>Final Score: ${score}</p>
-          ${generateLeaderboardHTML(updateLeaderboard(score))}
+              <h1>GAME OVER</h1>
+              <p>Final Score: ${score}</p>
+              ${generateLeaderboardHTML(leaderboard)}
         `;
         container.style.display = "block";
         playAgainButton.style.display = "block";
@@ -741,7 +820,10 @@
     
     function resetGame() {
       gameOver = false;
+      leaderboardUpdated = false;
       score = 0;
+      currentLevel = 1;
+      nextLevelScore = LEVEL_UP_SCORE; // Reset the next level score threshold.
       spaceship = new Spaceship(new Vector2(width / 2, height / 2));
       bullets = [];
       asteroids = spawnAsteroids(5);
@@ -760,6 +842,10 @@
       requestAnimationFrame(gameLoop);
     }
     gameLoop();
+
+    // ======================================
+    // (Enemy Ship & Enemy Bullet classes have been removed)
+    // ======================================
   </script>
 </body>
 </html>
