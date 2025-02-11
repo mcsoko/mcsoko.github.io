@@ -2,897 +2,2085 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>METEOR MADNESS</title>
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>METEOR MADNESS - PixiJS with Logging</title>
+  <!-- Add Press Start 2P font -->
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
   <style>
     /* Global styles */
     body {
       margin: 0;
       background: black;
       overflow: hidden;
-      position: relative;
       font-family: 'Courier New', monospace;
     }
-    canvas {
-      display: block;
-      background: black;
-      /* Ensure the canvas fills the viewport */
-      width: 100%;
-      height: 100%;
-    }
-    /* Game Over & Leaderboard Container */
-    #gameOverContainer {
-      display: none;
-      position: absolute;
-      top: 20%;
-      left: 50%;
-      transform: translate(-50%, 0);
-      color: white;
-      text-align: center;
-      background: rgba(0, 0, 0, 0.8);
-      padding: 20px;
-      border: 2px solid white;
-      border-radius: 10px;
-      max-width: 90%;
-      z-index: 300;
-      font-family: 'Courier New', monospace;
-    }
-    /* Welcome Screen Overlay */
+    /* Welcome Screen */
     #welcomeScreen {
       position: absolute;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
-      background: black;
+      background: rgba(0,0,0,0.9);
       color: white;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      z-index: 400;
+      z-index: 10;
+      font-family: 'Courier New', monospace;
     }
     #welcomeScreen h1 {
       font-size: 48px;
-      margin: 0 0 20px 0;
+      margin-bottom: 30px;
+      color: #fff;
+      text-shadow: 
+        4px 4px 0px #2ecc71,
+        8px 8px 0px #27ae60,
+        12px 12px 0px #219a52,
+        16px 16px 0px #1b854a;
+      font-family: 'Press Start 2P', 'Courier New', monospace;
+      letter-spacing: 2px;
+      transform: perspective(500px) rotateX(10deg);
+      animation: float 3s ease-in-out infinite;
     }
-    #welcomeScreen p {
-      font-size: 24px;
-      margin: 0 0 20px 0;
+    
+    @keyframes float {
+      0% { transform: perspective(500px) rotateX(10deg) translateY(0px); }
+      50% { transform: perspective(500px) rotateX(10deg) translateY(-10px); }
+      100% { transform: perspective(500px) rotateX(10deg) translateY(0px); }
     }
-    /* Container for displaying the leaderboard on the welcome screen */
+
+    /* Add Press Start 2P font for authentic NES look */
+    @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
     #welcomeLeaderboard {
-      margin-bottom: 20px;
+      background: rgba(0,0,0,0.7);
+      padding: 30px 40px;
+      border: 2px solid #2ecc71;
+      border-radius: 15px;
+      margin-bottom: 30px;
       max-height: 300px;
       overflow-y: auto;
+      min-width: 300px;
+      max-width: 90%;
     }
-    /* Start Game button */
+    #welcomeLeaderboard h2 {
+      color: #2ecc71;
+      text-align: center;
+      margin-top: 0;
+      margin-bottom: 20px;
+    }
+    #welcomeLeaderboard ol {
+      text-align: left;
+      margin: 20px 0;
+      padding-left: 30px;
+    }
+    #welcomeLeaderboard li {
+      margin: 5px 0;
+      font-size: 16px;
+    }
     #startButton {
       font-size: 24px;
-      padding: 10px 20px;
-      cursor: pointer;
-    }
-    /* On-screen mobile controls */
-    #movement-controls, #shoot-controls {
-      position: fixed;
-      z-index: 100;
-    }
-    #movement-controls {
-      bottom: 20px;
-      left: 20px;
-      display: flex;
-      gap: 10px;
-    }
-    #shoot-controls {
-      bottom: 20px;
-      right: 20px;
-    }
-    .control-button {
-      width: 160px;
-      height: 160px;
-      border-radius: 50%;
-      background: rgba(255,255,255,0.3);
+      padding: 12px 30px;
+      background: #2ecc71;
       border: none;
-      font-size: 48px;
+      border-radius: 5px;
       color: white;
-      outline: none;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-family: 'Courier New', monospace;
     }
-    @media (max-width: 600px) {
-      .control-button {
-        width: 150px;
-        height: 150px;
-        font-size: 48px;
-        background: rgba(255,255,255,0.2);
-      }
+    #startButton:hover {
+      background: #27ae60;
+      transform: scale(1.05);
     }
-    @media (hover: hover) and (pointer: fine) {
-      #movement-controls, #shoot-controls {
-        display: none;
-      }
-    }
-    /* Play Again Button */
-    #playAgainButton {
+    /* Game Over Screen */
+    #gameOverContainer {
+      display: none;
       position: absolute;
-      top: 90%;
+      top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      font-size: 24px;
-      padding: 10px 20px;
-      display: none;
-      z-index: 200;
+      background: rgba(0,0,0,0.9);
+      color: white;
+      padding: 30px 40px;
+      border: 2px solid #2ecc71;
+      border-radius: 15px;
+      max-width: 90%;
+      font-family: 'Courier New', monospace;
+      z-index: 10;
+      text-align: center;
+    }
+    #gameOverContainer h1 {
+      font-size: 36px;
+      margin: 0 0 20px 0;
+      color: #2ecc71;
+      text-shadow: 0 0 10px rgba(46, 204, 113, 0.5);
+    }
+    #gameOverContainer p {
+      font-size: 20px;
+      margin: 10px 0;
+    }
+    #gameOverContainer input {
+      font-size: 18px;
+      padding: 8px 15px;
+      margin: 10px 0;
+      background: rgba(255,255,255,0.1);
+      border: 1px solid #2ecc71;
+      border-radius: 5px;
+      color: white;
+      text-align: center;
+      font-family: 'Courier New', monospace;
+      width: 100px;
+    }
+    #gameOverContainer button {
+      font-size: 18px;
+      padding: 8px 20px;
+      margin: 15px 0;
+      background: #2ecc71;
+      border: none;
+      border-radius: 5px;
+      color: white;
       cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    #gameOverContainer button:hover {
+      background: #27ae60;
+      transform: scale(1.05);
+    }
+    #gameOverContainer ol {
+      text-align: left;
+      margin: 20px 0;
+      padding-left: 30px;
+    }
+    #gameOverContainer li {
+      margin: 5px 0;
+      font-size: 16px;
+    }
+    /* Game HUD */
+    #gameHUD {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      color: white;
+      font-family: 'Courier New', monospace;
+      font-size: 18px;
+      text-shadow: 2px 2px 2px rgba(0,0,0,0.8);
+      z-index: 5;
+      pointer-events: none;
+    }
+    #powerupStatus {
+      color: #2ecc71;
+      font-weight: bold;
+      margin-top: 5px;
+    }
+    #levelUp {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: white;
+      font-family: 'Courier New', monospace;
+      font-size: 36px;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+      opacity: 0;
+      transition: opacity 0.3s;
+      pointer-events: none;
+      z-index: 5;
+    }
+    .highlight-score {
+      background: rgba(46, 204, 113, 0.3);
+      padding: 2px 8px;
+      border-radius: 4px;
+      border: 1px solid #2ecc71;
+      animation: glow 1.5s ease-in-out infinite alternate;
+    }
+    @keyframes glow {
+      from {
+        box-shadow: 0 0 5px #2ecc71;
+      }
+      to {
+        box-shadow: 0 0 10px #2ecc71;
+      }
+    }
+    #playAgainButton {
+      font-size: 18px;
+      padding: 8px 20px;
+      margin: 15px 0;
+      background: #2ecc71;
+      border: none;
+      border-radius: 5px;
+      color: white;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    #playAgainButton:hover {
+      background: #27ae60;
+      transform: scale(1.05);
+    }
+    /* Add this to the CSS section after the #levelUp styles */
+    #highScoreAlert {
+      position: absolute;
+      top: 20%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: #ffd700;
+      font-family: 'Courier New', monospace;
+      font-size: 36px;
+      text-shadow: 0 0 10px rgba(255, 215, 0, 0.7);
+      opacity: 0;
+      transition: opacity 0.5s;
+      pointer-events: none;
+      z-index: 5;
+      animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+      0% { transform: translate(-50%, -50%) scale(1); }
+      50% { transform: translate(-50%, -50%) scale(1.1); }
+      100% { transform: translate(-50%, -50%) scale(1); }
     }
   </style>
   
-  <!-- Firebase libraries (compat versions for simplicity) -->
+  <!-- Include PixiJS and Firebase libraries (compat versions) -->
+  <!-- (Tip: If you continue to see renderer issues, try forcing a known version such as 6.5.8) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/6.5.8/browser/pixi.min.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-  <script>
-    // TODO: Replace with your Firebase project configuration.
-    const firebaseConfig = {
-      apiKey: "AIzaSyCd4CZi0hhyws2u9ms1TL1HVBnhFZx8HcA",
-      authDomain: "meteor-madness-75c9d.firebaseapp.com",
-      databaseURL: "https://meteor-madness-75c9d-default-rtdb.firebaseio.com",
-      projectId: "meteor-madness-75c9d",
-      storageBucket: "meteor-madness-75c9d.firebasestorage.app",
-      messagingSenderId: "59442741917",
-      appId: "G-FM1KF56JZF"
-    };
-    // Initialize Firebase
-    firebase.initializeApp(firebaseConfig);
-    const database = firebase.database();
-    
-    // Sign in anonymously so that the auth-based security rules pass.
-    firebase.auth().signInAnonymously().catch(function(error) {
-      console.error("Anonymous sign-in failed:", error);
-    });
-    
-    // Write the player's score and initials to Firebase.
-    function updateLeaderboardOnline(score, initials) {
-      const leaderboardRef = database.ref('leaderboard');
-      leaderboardRef.push({
-        score: score,
-        initials: initials,
-        date: new Date().toLocaleString()
-      });
-    }
-    
-    // Retrieve the top 10 leaderboard entries.
-    function getLeaderboardOnline(callback) {
-      const leaderboardRef = database.ref('leaderboard').orderByChild('score').limitToLast(10);
-      leaderboardRef.once('value', snapshot => {
-        const data = snapshot.val();
-        const leaderboardArray = [];
-        for (let key in data) {
-          leaderboardArray.push(data[key]);
-        }
-        leaderboardArray.sort((a, b) => b.score - a.score);
-        callback(leaderboardArray);
-      });
-    }
-  </script>
 </head>
 <body>
-  <canvas id="gameCanvas"></canvas>
-  <div id="gameOverContainer"></div>
-  
-  <!-- Welcome Screen (shown initially) -->
+  <!-- Welcome Screen -->
   <div id="welcomeScreen">
     <h1>METEOR MADNESS</h1>
-    <p>Blast through space, one meteor at a time!</p>
-    <!-- Container for displaying the leaderboard on the welcome screen -->
     <div id="welcomeLeaderboard"><p>Loading leaderboard...</p></div>
     <button id="startButton">Start Game</button>
   </div>
+  <!-- Game Over Screen -->
+  <div id="gameOverContainer"></div>
   
-  <div id="movement-controls">
-    <button id="btn-left" class="control-button">◀</button>
-    <button id="btn-thrust" class="control-button">▲</button>
-    <button id="btn-right" class="control-button">▶</button>
+  <!-- Game HUD -->
+  <div id="gameHUD">
+    <div>SCORE: <span id="scoreDisplay">0</span></div>
+    <div>LEVEL: <span id="levelDisplay">1</span></div>
+    <div id="powerupStatus"></div>
   </div>
-  <div id="shoot-controls">
-    <button id="btn-shoot" class="control-button">✦</button>
-  </div>
-  <button id="playAgainButton">Play Again</button>
+  <div id="levelUp">LEVEL UP!</div>
   
+  <!-- Add this after the #levelUp div in the HTML body -->
+  <div id="highScoreAlert">NEW HIGH SCORE!</div>
+  
+  <!-- Main Script -->
   <script>
-    // ------------------------------------------
-    // CONFIGURATION VARIABLES (Gameplay Tweaks)
-    // ------------------------------------------
-    const PLAYER_ROTATION_SPEED = 7;      
-    const PLAYER_ACCELERATION = 0.3;      
-    const SHOOT_COOLDOWN_NORMAL = 15;     
-    const SHOOT_COOLDOWN_POWERUP = 5;     
-    
-    // ------------------------------------------
-    // Mobile Detection and Canvas Setup
-    // ------------------------------------------
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    const canvas = document.getElementById("gameCanvas");
-    const ctx = canvas.getContext("2d");
-    
-    // Global width and height (used for screen wrapping)
-    let width, height;
-    
-    function resizeCanvas() {
-      if (isMobile) {
-        width = window.innerWidth * 0.5;
-        height = window.innerHeight * 0.5;
-        canvas.width = width;
-        canvas.height = height;
-        ctx.setTransform(2, 0, 0, 2, 0, 0);
-      } else {
-        width = window.innerWidth;
-        height = window.innerHeight;
-        canvas.width = width;
-        canvas.height = height;
-        ctx.setTransform(1, 0, 0, 1, 0, 0);
-      }
-    }
-    resizeCanvas();
-    window.addEventListener("resize", resizeCanvas);
-    
-    // ------------------------------------------
-    // GLOBAL GAME VARIABLES & CONFIGURATION
-    // ------------------------------------------
-    const LEVEL_UP_SCORE = 1000;
-    let currentLevel = 1;
-    let nextLevelScore = LEVEL_UP_SCORE;
-    
-    let showWelcome = true;
-    let deathSoundPlayed = false;
-    let score = 0;
-    let gameOver = false;
-    let shootCooldown = 0;
-    let leaderboardUpdated = false;
-    
-    let showLevelDisplay = false;
-    let levelDisplayTimer = 0;
-    
-    const POWERUP_DURATION = 500;
-    // Power-up types: "spread", "dual", or "omni"
-    
-    // Global variable to cache the online leaderboard (so we fetch it only once)
-    let onlineLeaderboard = null;
-    // Flag to ensure the game-over leaderboard form is displayed only once.
-    let leaderboardFormDisplayed = false;
-    
-    // ------------------------------------------
-    // SOUND EFFECTS
-    // ------------------------------------------
-    const shootSound = new Audio('shoot.mp3');
-    const explosionSound = new Audio('explosion.mp3');
-    const powerupSound = new Audio('powerup.mp3');
-    const gameoverSound = new Audio('gameover.mp3');
-    
-    // ------------------------------------------
-    // LEADERBOARD DISPLAY HELPER
-    // ------------------------------------------
-    function generateLeaderboardHTML(leaderboard) {
-      let html = "<h2>Leaderboard</h2><ol>";
-      leaderboard.forEach(entry => {
-        html += `<li>${entry.initials}: ${entry.score} (${entry.date})</li>`;
-      });
-      html += "</ol>";
-      return html;
-    }
-    
-    // ------------------------------------------
-    // Display Leaderboard on the Welcome Screen
-    // ------------------------------------------
-    function displayWelcomeLeaderboard() {
-      getLeaderboardOnline((leaderboard) => {
-        document.getElementById("welcomeLeaderboard").innerHTML = generateLeaderboardHTML(leaderboard);
-      });
-    }
-    // Call once when the page loads.
-    displayWelcomeLeaderboard();
-    
-    // ------------------------------------------
-    // WELCOME SCREEN HANDLING
-    // ------------------------------------------
-    const welcomeScreen = document.getElementById("welcomeScreen");
-    const startButton = document.getElementById("startButton");
-    startButton.addEventListener("click", () => {
-      showWelcome = false;
-      welcomeScreen.style.display = "none";
-    });
-    
-    // ------------------------------------------
-    // GLOBAL KEYBOARD HANDLING (DESKTOP)
-    // ------------------------------------------
-    const keys = {};
-    window.addEventListener("keydown", e => { keys[e.key] = true; });
-    window.addEventListener("keyup", e => { keys[e.key] = false; });
-    
-    // ------------------------------------------
-    // ON-SCREEN CONTROLS FOR MOBILE
-    // ------------------------------------------
-    function setupControlButton(btnId, keyName) {
-      const btn = document.getElementById(btnId);
-      btn.addEventListener("touchstart", e => { e.preventDefault(); keys[keyName] = true; });
-      btn.addEventListener("touchend", e => { e.preventDefault(); keys[keyName] = false; });
-      btn.addEventListener("mousedown", e => { e.preventDefault(); keys[keyName] = true; });
-      btn.addEventListener("mouseup", e => { e.preventDefault(); keys[keyName] = false; });
-    }
-    setupControlButton("btn-left", "ArrowLeft");
-    setupControlButton("btn-right", "ArrowRight");
-    setupControlButton("btn-thrust", "ArrowUp");
-    setupControlButton("btn-shoot", " ");
-    
-    // ------------------------------------------
-    // PLAY AGAIN BUTTON HANDLING
-    // ------------------------------------------
-    const playAgainButton = document.getElementById("playAgainButton");
-    playAgainButton.addEventListener("click", resetGame);
-    
-    // ------------------------------------------
-    // GLOBAL ARRAY FOR PARTICLES
-    // ------------------------------------------
-    let particles = [];
-    
-    // ------------------------------------------
-    // 2D VECTOR CLASS
-    // ------------------------------------------
-    class Vector2 {
-      constructor(x, y) { this.x = x; this.y = y; }
-      clone() { return new Vector2(this.x, this.y); }
-      add(v) { return new Vector2(this.x + v.x, this.y + v.y); }
-      subtract(v) { return new Vector2(this.x - v.x, this.y - v.y); }
-      multiply(scalar) { return new Vector2(this.x * scalar, this.y * scalar); }
-      length() { return Math.sqrt(this.x * this.x + this.y * this.y); }
-      distanceTo(v) { return Math.sqrt((this.x - v.x) ** 2 + (this.y - v.y) ** 2); }
-    }
-    
-    // ------------------------------------------
-    // PARTICLE CLASS (Crisp, Extended-Lifespan)
-    // ------------------------------------------
-    class Particle {
-      constructor(pos) {
-        this.pos = pos.clone();
-        let angle = Math.random() * 2 * Math.PI;
-        let speed = 2 + Math.random() * 2;
-        this.velocity = new Vector2(Math.cos(angle), Math.sin(angle)).multiply(speed);
-        this.life = 80;
-        this.initialLife = this.life;
-        this.radius = 1.5;
-        const colors = ["#ff4d4d", "#ff944d", "#ffff4d", "#94ff4d", "#4dffff", "#4d94ff", "#ff4dff"];
-        this.color = colors[Math.floor(Math.random() * colors.length)];
-      }
-      update(factor) {
-        this.pos = this.pos.add(this.velocity.multiply(factor));
-        this.life -= factor;
-      }
-      draw(ctx) {
-        ctx.save();
-        ctx.globalAlpha = this.life / this.initialLife;
-        ctx.fillStyle = this.color;
-        ctx.beginPath();
-        ctx.arc(this.pos.x, this.pos.y, this.radius, 0, 2 * Math.PI);
-        ctx.fill();
-        ctx.restore();
-      }
-    }
-    
-    function spawnExplosion(pos, size) {
-      let count = 20 + Math.floor(Math.random() * 10);
-      for (let i = 0; i < count; i++) {
-        particles.push(new Particle(pos));
-      }
-      explosionSound.currentTime = 0;
-      explosionSound.play();
-    }
-    
-    // ------------------------------------------
-    // SPACESHIP CLASS (With Power-Up)
-    // ------------------------------------------
-    class Spaceship {
-      constructor(pos) {
-        this.pos = pos;
-        this.velocity = new Vector2(0, 0);
-        this.angle = 0;
-        this.radius = 12;
-        this.acceleration = PLAYER_ACCELERATION;
-        this.friction = 0.99;
-        this.thrusting = false;
-        this.powerupActive = false;
-        this.powerupTimer = 0;
-        this.powerupType = null; // "spread", "dual", or "omni"
-      }
-      update(factor) {
-        if (keys["ArrowLeft"]) { this.angle += PLAYER_ROTATION_SPEED * factor; }
-        if (keys["ArrowRight"]) { this.angle -= PLAYER_ROTATION_SPEED * factor; }
-        if (keys["ArrowUp"]) {
-          this.thrusting = true;
-          let rad = this.angle * Math.PI / 180;
-          let force = new Vector2(Math.sin(rad), -Math.cos(rad)).multiply(this.acceleration * factor);
-          this.velocity = this.velocity.add(force);
-        } else {
-          this.thrusting = false;
-        }
-        if (this.powerupActive) {
-          this.powerupTimer -= factor;
-          if (this.powerupTimer <= 0) {
-            this.powerupActive = false;
-            this.powerupType = null;
-          }
-        }
-        this.velocity = this.velocity.multiply(Math.pow(this.friction, factor));
-        this.pos = this.pos.add(this.velocity.multiply(factor));
-        if (this.pos.x < 0) this.pos.x = width;
-        if (this.pos.x > width) this.pos.x = 0;
-        if (this.pos.y < 0) this.pos.y = height;
-        if (this.pos.y > height) this.pos.y = 0;
-      }
-      draw(ctx) {
-        let rad = this.angle * Math.PI / 180;
-        ctx.save();
-        ctx.translate(this.pos.x, this.pos.y);
-        ctx.rotate(rad);
-        ctx.beginPath();
-        ctx.moveTo(0, -30);
-        ctx.lineTo(4, -22);
-        ctx.lineTo(7, -12);
-        ctx.lineTo(6, -2);
-        ctx.lineTo(4, 10);
-        ctx.lineTo(0, 15);
-        ctx.lineTo(-4, 10);
-        ctx.lineTo(-6, -2);
-        ctx.lineTo(-7, -12);
-        ctx.lineTo(-4, -22);
-        ctx.closePath();
-        ctx.fillStyle = "gray";
-        ctx.fill();
-        ctx.strokeStyle = "white";
-        ctx.lineWidth = 2;
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(6, 0);
-        ctx.lineTo(16, 6);
-        ctx.lineTo(6, -16);
-        ctx.closePath();
-        ctx.fillStyle = "darkgray";
-        ctx.fill();
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(-6, 0);
-        ctx.lineTo(-16, 6);
-        ctx.lineTo(-6, -16);
-        ctx.closePath();
-        ctx.fillStyle = "darkgray";
-        ctx.fill();
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.arc(0, -22, 3, 0, Math.PI * 2);
-        ctx.fillStyle = "black";
-        ctx.fill();
-        ctx.stroke();
-        if (this.thrusting) {
-          ctx.beginPath();
-          ctx.moveTo(-3, 15);
-          ctx.lineTo(0, 25 + Math.random() * 3);
-          ctx.lineTo(3, 15);
-          ctx.closePath();
-          ctx.fillStyle = "orange";
-          ctx.fill();
-        }
-        ctx.restore();
-      }
-    }
-    
-    // ------------------------------------------
-    // BULLET CLASS
-    // ------------------------------------------
-    class Bullet {
-      constructor(pos, angle) {
-        this.pos = pos.clone();
-        this.speed = 8;
-        let rad = angle * Math.PI / 180;
-        this.velocity = new Vector2(Math.sin(rad), -Math.cos(rad)).multiply(this.speed);
-        this.radius = 2;
-        this.life = 60;
-      }
-      update(factor) {
-        this.pos = this.pos.add(this.velocity.multiply(factor));
-        this.life -= factor;
-        if (this.pos.x < 0) this.pos.x = width;
-        if (this.pos.x > width) this.pos.x = 0;
-        if (this.pos.y < 0) this.pos.y = height;
-        if (this.pos.y > height) this.pos.y = 0;
-      }
-      draw(ctx) {
-        ctx.fillStyle = "white";
-        ctx.beginPath();
-        ctx.arc(this.pos.x, this.pos.y, this.radius, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    }
-    
-    // ------------------------------------------
-    // ASTEROID CLASS
-    // ------------------------------------------
-    class Asteroid {
-      constructor(pos, size) {
-        this.pos = pos.clone();
-        this.size = size;
-        this.radius = 15 * size;
-        let angle = Math.random() * 360;
-        let speed = (1 + Math.random() * 2) / size;
-        this.velocity = new Vector2(Math.cos(angle * Math.PI / 180),
-                                    Math.sin(angle * Math.PI / 180)).multiply(speed);
-        this.angle = Math.random() * 360;
-        this.rotationSpeed = Math.random() * 2 - 1;
-        const numPoints = Math.floor(10 + Math.random() * 7);
-        this.points = generateAsteroidPoints(this.radius, numPoints);
-      }
-      update(factor) {
-        this.pos = this.pos.add(this.velocity.multiply(factor));
-        this.angle = (this.angle + this.rotationSpeed * factor) % 360;
-        if (this.pos.x < 0) this.pos.x = width;
-        if (this.pos.x > width) this.pos.x = 0;
-        if (this.pos.y < 0) this.pos.y = height;
-        if (this.pos.y > height) this.pos.y = 0;
-      }
-      draw(ctx) {
-        let grad = ctx.createRadialGradient(this.pos.x, this.pos.y, this.radius * 0.3, this.pos.x, this.pos.y, this.radius);
-        grad.addColorStop(0, "#888");
-        grad.addColorStop(1, "#333");
-        ctx.fillStyle = grad;
-        ctx.beginPath();
-        let firstPoint = true;
-        for (let pt of this.points) {
-          let totalAngle = (pt.angle + this.angle) * Math.PI / 180;
-          let x = Math.cos(totalAngle) * pt.distance + this.pos.x;
-          let y = Math.sin(totalAngle) * pt.distance + this.pos.y;
-          if (firstPoint) { ctx.moveTo(x, y); firstPoint = false; }
-          else { ctx.lineTo(x, y); }
-        }
-        ctx.closePath();
-        ctx.fill();
-        ctx.strokeStyle = "white";
-        ctx.lineWidth = 2;
-        ctx.stroke();
-      }
-    }
-    
-    // ------------------------------------------
-    // HELPER FUNCTION: GENERATE ASTEROID POINTS
-    // ------------------------------------------
-    function generateAsteroidPoints(radius, numPoints) {
-      const points = [];
-      const phase1 = Math.random() * 2 * Math.PI;
-      const phase2 = Math.random() * 2 * Math.PI;
-      for (let i = 0; i < numPoints; i++) {
-        let angle = i * (2 * Math.PI / numPoints);
-        let noise = 1 + 0.2 * Math.sin(angle * 3 + phase1) + 0.1 * Math.sin(angle * 7 + phase2);
-        let r = radius * noise;
-        points.push({ angle: angle * 180 / Math.PI, distance: r });
-      }
-      return points;
-    }
-    
-    // ------------------------------------------
-    // POWER-UP CLASS
-    // ------------------------------------------
-    class PowerUp {
-      constructor(pos) {
-        this.pos = pos.clone();
-        const types = ["spread", "dual", "omni"];
-        this.type = types[Math.floor(Math.random() * types.length)];
-        this.velocity = new Vector2(Math.random() * 2 - 1, Math.random() * 2 - 1);
-      }
-      update(factor) {
-        this.pos = this.pos.add(this.velocity.multiply(factor));
-        if (this.pos.x < 0) this.pos.x = width;
-        if (this.pos.x > width) this.pos.x = 0;
-        if (this.pos.y < 0) this.pos.y = height;
-        if (this.pos.y > height) this.pos.y = 0;
-      }
-      draw(ctx) {
-        ctx.save();
-        ctx.translate(this.pos.x, this.pos.y);
-        let glow = ctx.createRadialGradient(0, 0, 0, 0, 0, 20);
-        glow.addColorStop(0, "rgba(0,255,0,0.8)");
-        glow.addColorStop(1, "rgba(0,255,0,0)");
-        ctx.fillStyle = glow;
-        ctx.beginPath();
-        ctx.arc(0, 0, 20, 0, 2 * Math.PI);
-        ctx.fill();
-        const canWidth = 12;
-        const canHeight = 20;
-        ctx.fillStyle = "#777";
-        ctx.strokeStyle = "#aaa";
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.ellipse(0, -canHeight/2, canWidth/2, 3, 0, 0, 2 * Math.PI);
-        ctx.fill();
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.ellipse(0, canHeight/2, canWidth/2, 3, 0, 0, 2 * Math.PI);
-        ctx.fill();
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(-canWidth/2, -canHeight/2);
-        ctx.lineTo(-canWidth/2, canHeight/2);
-        ctx.lineTo(canWidth/2, canHeight/2);
-        ctx.lineTo(canWidth/2, -canHeight/2);
-        ctx.closePath();
-        ctx.fill();
-        ctx.stroke();
-        ctx.restore();
-      }
-    }
-    
-    // ------------------------------------------
-    // COLLISION HANDLING FOR ASTEROIDS
-    // ------------------------------------------
-    function resolveCollision(a1, a2) {
-      let dx = a1.pos.x - a2.pos.x;
-      let dy = a1.pos.y - a2.pos.y;
-      let dist = Math.sqrt(dx * dx + dy * dy);
-      if (dist === 0) return;
-      let overlap = (a1.radius + a2.radius - dist);
-      if (overlap > 0) {
-        let nx = dx / dist;
-        let ny = dy / dist;
-        a1.pos.x += nx * overlap / 2;
-        a1.pos.y += ny * overlap / 2;
-        a2.pos.x -= nx * overlap / 2;
-        a2.pos.y -= ny * overlap / 2;
-        let dvx = a1.velocity.x - a2.velocity.x;
-        let dvy = a1.velocity.y - a2.velocity.y;
-        let dot = dvx * nx + dvy * ny;
-        if (dot > 0) return;
-        let m1 = a1.size;
-        let m2 = a2.size;
-        let impulse = (2 * dot) / (m1 + m2);
-        a1.velocity.x -= impulse * m2 * nx;
-        a1.velocity.y -= impulse * m2 * ny;
-        a2.velocity.x += impulse * m1 * nx;
-        a2.velocity.y += impulse * m1 * ny;
-      }
-    }
-    
-    function handleAsteroidCollisions(asteroids) {
-      for (let i = 0; i < asteroids.length; i++) {
-        for (let j = i + 1; j < asteroids.length; j++) {
-          resolveCollision(asteroids[i], asteroids[j]);
-        }
-      }
-    }
-    
-    // ------------------------------------------
-    // GLOBAL GAME OBJECTS
-    // ------------------------------------------
-    let spaceship = new Spaceship(new Vector2(width / 2, height / 2));
-    let bullets = [];
-    let asteroids = spawnAsteroids(5);
-    let powerups = [];
-    
-    function spawnAsteroids(num) {
-      let asteroidsArray = [];
-      for (let i = 0; i < num; i++) {
-        let pos;
-        let side = ["top", "bottom", "left", "right"][Math.floor(Math.random() * 4)];
-        if (side === "top") { pos = new Vector2(Math.random() * width, 0); }
-        else if (side === "bottom") { pos = new Vector2(Math.random() * width, height); }
-        else if (side === "left") { pos = new Vector2(0, Math.random() * height); }
-        else if (side === "right") { pos = new Vector2(width, Math.random() * height); }
-        asteroidsArray.push(new Asteroid(pos, 3));
-      }
-      return asteroidsArray;
-    }
-    
-    // ------------------------------------------
-    // GAME LOOP & DRAWING (Time-Delta Based)
-    // ------------------------------------------
-    let lastTime = performance.now();
-    function gameLoop(now) {
-      let dt = (now - lastTime) / 1000;
-      lastTime = now;
-      let factor = dt * 60;
+    window.onload = function() {
+      console.log("Window loaded, initializing game...");
       
-      if (!gameOver && !showWelcome) {
-        spaceship.update(factor);
-        
-        if (score >= nextLevelScore) {
-          currentLevel++;
-          nextLevelScore += LEVEL_UP_SCORE;
-          showLevelDisplay = true;
-          levelDisplayTimer = 120;
-          let desiredCount = 5 + (currentLevel - 1) * 2;
-          let additionalAsteroids = desiredCount - asteroids.length;
-          if (additionalAsteroids < 0) additionalAsteroids = 0;
-          asteroids = asteroids.concat(spawnAsteroids(additionalAsteroids));
+      // --------------------------------------------------
+      // Global Constants and Variables
+      // --------------------------------------------------
+      const PLAYER_ROTATION_SPEED = 4;       // degrees per frame
+      const PLAYER_ACCELERATION = 0.3;       // acceleration per frame
+      const PLAYER_MAX_SPEED = 8;           // maximum player velocity
+      const PLAYER_FRICTION = 0.99;         // velocity dampening
+      const SHOOT_COOLDOWN_NORMAL = 10;      // cooldown duration for normal shots
+      const SHOOT_COOLDOWN_POWERUP = 5;      // cooldown duration for powerup shots
+      const POWERUP_DURATION = 300;          // duration (in ticks or delta units) for powerups
+      const POWERUP_LIFETIME = 300;          // how long powerups stay on screen (5 seconds at 60 FPS)
+      const POWERUP_SPAWN_CHANCE = 0.15;     // 15% chance to spawn a power-up when destroying an asteroid
+      const BASE_LEVEL_UP_SCORE = 2000;      // Increased from 1000 to give more time at each level
+      const MAX_PARTICLES = 200;  // Limit total particles
+      const MAX_ASTEROIDS = 30;   // Cap maximum asteroids
+      const COLLISION_CHECK_INTERVAL = 2; // Check collisions every N frames
+      const MAX_SCREEN_SHAKE = 20;  // Maximum screen shake intensity
+      const SCREEN_SHAKE_DECAY = 0.9; // How quickly screen shake decays
+      const MIN_ASTEROID_SPEED = 0.5; // Reduced from 0.8 for slower asteroids
+
+      // Vector2 class for basic vector math.
+      class Vector2 {
+        constructor(x, y) {
+          this.x = x;
+          this.y = y;
         }
         
-        if (keys[" "] && shootCooldown <= 0) {
-          if (spaceship.powerupActive) {
-            if (spaceship.powerupType === "spread") {
-              bullets.push(new Bullet(spaceship.pos, spaceship.angle));
-              bullets.push(new Bullet(spaceship.pos, spaceship.angle + 15));
-              bullets.push(new Bullet(spaceship.pos, spaceship.angle - 15));
-              shootCooldown = SHOOT_COOLDOWN_POWERUP;
-            } else if (spaceship.powerupType === "dual") {
-              let rad = spaceship.angle * Math.PI / 180;
-              let sideOffset = new Vector2(Math.cos(rad), Math.sin(rad)).multiply(6);
-              bullets.push(new Bullet(spaceship.pos.add(sideOffset), spaceship.angle));
-              bullets.push(new Bullet(spaceship.pos.subtract(sideOffset), spaceship.angle));
-              shootCooldown = SHOOT_COOLDOWN_POWERUP;
-            } else if (spaceship.powerupType === "omni") {
-              bullets.push(new Bullet(spaceship.pos, spaceship.angle));
-              bullets.push(new Bullet(spaceship.pos, spaceship.angle + 90));
-              bullets.push(new Bullet(spaceship.pos, spaceship.angle + 180));
-              bullets.push(new Bullet(spaceship.pos, spaceship.angle + 270));
-              shootCooldown = SHOOT_COOLDOWN_POWERUP;
+        add(v) {
+          return new Vector2(this.x + v.x, this.y + v.y);
+        }
+        
+        subtract(v) {
+          return new Vector2(this.x - v.x, this.y - v.y);
+        }
+        
+        multiply(scalar) {
+          return new Vector2(this.x * scalar, this.y * scalar);
+        }
+        
+        distanceTo(v) {
+          const dx = this.x - v.x;
+          const dy = this.y - v.y;
+          return Math.sqrt(dx * dx + dy * dy);
+        }
+        
+        clone() {
+          return new Vector2(this.x, this.y);
+        }
+      }
+
+      // Add Fibonacci helper function
+      function getFibonacciNumber(n) {
+        if (n <= 0) return 0;
+        if (n === 1) return 1;
+        let prev = 0;
+        let current = 1;
+        for (let i = 2; i <= n; i++) {
+          const next = prev + current;
+          prev = current;
+          current = next;
+        }
+        return current;
+      }
+
+      // Delta time normalization (60 FPS baseline)
+      const NOMINAL_FPS = 60;
+      function normalizedDelta(delta) {
+        return delta * (60 / NOMINAL_FPS);
+      }
+
+      // Screen shake state
+      let screenShakeIntensity = 0;
+      let screenShakeX = 0;
+      let screenShakeY = 0;
+      
+      // Screen shake functions
+      function applyScreenShake(intensity) {
+        screenShakeIntensity = Math.min(intensity, MAX_SCREEN_SHAKE);
+      }
+      
+      function updateScreenShake() {
+        if (screenShakeIntensity > 0) {
+          screenShakeX = (Math.random() - 0.5) * 2 * screenShakeIntensity;
+          screenShakeY = (Math.random() - 0.5) * 2 * screenShakeIntensity;
+          screenShakeIntensity *= SCREEN_SHAKE_DECAY;
+          if (screenShakeIntensity < 0.1) screenShakeIntensity = 0;
+          
+          app.stage.x = screenShakeX;
+          app.stage.y = screenShakeY;
+        } else {
+          app.stage.x = 0;
+          app.stage.y = 0;
+        }
+      }
+
+      let gameOver = false;
+      let score = 0;
+      let currentLevel = 1;
+      let nextLevelScore = BASE_LEVEL_UP_SCORE;
+      let onlineLeaderboard = null;
+      let leaderboardFormDisplayed = false;
+      let deathSoundPlayed = false;
+      let submittedScore = null;
+      let gameOverUISet = false;
+      let currentHighScore = 0;
+      let highScoreDisplayed = false;
+      let leaderboardHighScore = 0;
+      let frameCount = 0;
+      
+      // Game object arrays and pools
+      let particles = [];
+      let bullets = [];
+      let asteroids = [];
+      let powerups = [];
+      const particlePool = [];
+      const asteroidPool = [];
+
+      // Audio assets (update paths as necessary)
+      const shootSound = new Audio('shoot.mp3');
+      const powerupSound = new Audio('powerup.mp3');
+      const gameoverSound = new Audio('gameover.mp3');
+
+      // Object pool utility functions
+      function getParticleFromPool(position, type, size) {
+        // Try to reuse a particle from the pool
+        let particle = particlePool.find(p => !p.active);
+        if (particle) {
+          particle.reset(position, type, size);
+          return particle;
+        }
+        // Create new if pool isn't full
+        if (particles.length < MAX_PARTICLES) {
+          particle = new Particle(position, type, size);
+          particlePool.push(particle);
+          return particle;
+        }
+        return null;
+      }
+      // Expose functions to global scope
+      window.getParticleFromPool = getParticleFromPool;
+      window.particles = particles;
+      window.spawnExplosion = spawnExplosion;
+      window.applyScreenShake = applyScreenShake;
+      window.MAX_SCREEN_SHAKE = MAX_SCREEN_SHAKE;
+      window.Vector2 = Vector2;
+
+      function getAsteroidFromPool(position, size) {
+        let asteroid = asteroidPool.find(a => !a.active);
+        if (asteroid) {
+          asteroid.reset(position, size);
+          asteroid.active = true;
+          return asteroid;
+        }
+        asteroid = new Asteroid(position, size);
+        asteroid.active = true;
+        asteroidPool.push(asteroid);
+        return asteroid;
+      }
+
+      // --------------------------------------------------
+      // Firebase Initialization and Auth
+      // --------------------------------------------------
+      const firebaseConfig = {
+        apiKey: "AIzaSyCd4CZi0hhyws2u9ms1TL1HVBnhFZx8HcA",
+        authDomain: "meteor-madness-75c9d.firebaseapp.com",
+        databaseURL: "https://meteor-madness-75c9d-default-rtdb.firebaseio.com",
+        projectId: "meteor-madness-75c9d",
+        storageBucket: "meteor-madness-75c9d.firebasestorage.app",
+        messagingSenderId: "59442741917",
+        appId: "G-FM1KF56JZF"
+      };
+
+      firebase.initializeApp(firebaseConfig);
+      console.log("Firebase initialized:", firebase.apps[0]);
+      const database = firebase.database();
+      
+      firebase.auth().signInAnonymously()
+        .then(() => { console.log("Anonymous sign-in successful."); })
+        .catch((error) => { console.error("Anonymous sign-in failed:", error); });
+      
+      // --------------------------------------------------
+      // Firebase Leaderboard Functions
+      // --------------------------------------------------
+      function updateLeaderboardOnline(score, initials) {
+        const currentDate = new Date().toLocaleString();
+        submittedScore = { score, initials, date: currentDate };
+        const leaderboardRef = database.ref('leaderboard');
+        leaderboardRef.push({
+          score: score,
+          initials: initials,
+          date: currentDate
+        });
+        console.log("Score submitted:", score, initials);
+      }
+      
+      function getLeaderboardOnline(callback) {
+        const leaderboardRef = database.ref('leaderboard').orderByChild('score').limitToLast(10);
+        leaderboardRef.once('value', snapshot => {
+          const data = snapshot.val();
+          const leaderboardArray = [];
+          for (let key in data) {
+            leaderboardArray.push(data[key]);
+          }
+          leaderboardArray.sort((a, b) => b.score - a.score);
+          // Update the leaderboard high score
+          leaderboardHighScore = leaderboardArray.length > 0 ? leaderboardArray[0].score : 0;
+          console.log("Current leaderboard high score:", leaderboardHighScore);
+          callback(leaderboardArray);
+        });
+      }
+      
+      // --------------------------------------------------
+      // Global Keyboard Setup (for desktop)
+      // --------------------------------------------------
+      const keys = {};
+      window.addEventListener("keydown", e => { keys[e.key] = true; });
+      window.addEventListener("keyup", e => { keys[e.key] = false; });
+      console.log("Keyboard event listeners set up.");
+      
+      // --------------------------------------------------
+      // Create PixiJS Application
+      // --------------------------------------------------
+      // Set up renderer options
+      const rendererOptions = {
+        width: window.innerWidth,
+        height: window.innerHeight,
+        backgroundColor: 0x000000,
+        resolution: window.devicePixelRatio || 1,
+        autoDensity: true,
+        antialias: true,
+        powerPreference: "high-performance",
+        clearBeforeRender: true,
+        preserveDrawingBuffer: true,
+        failIfMajorPerformanceCaveat: false
+      };
+
+      // Create application with error handling
+      let app;
+      try {
+        PIXI.settings.FAIL_IF_MAJOR_PERFORMANCE_CAVEAT = false;
+        app = new PIXI.Application(rendererOptions);
+        
+        if (!app.renderer) {
+          throw new Error("Renderer creation failed");
+        }
+
+        // Handle WebGL context loss
+        app.renderer.view.addEventListener('webglcontextlost', (event) => {
+          event.preventDefault();
+          console.warn("WebGL context lost. Attempting to restore...");
+        });
+
+        app.renderer.view.addEventListener('webglcontextrestored', () => {
+          console.log("WebGL context restored.");
+          // Recreate textures
+          if (spaceship && spaceship.sprite) {
+            spaceship.texture = createSpaceshipTexture();
+            spaceship.sprite.texture = spaceship.texture;
+          }
+          // Regenerate all other game object textures
+          bullets.forEach(bullet => {
+            bullet.texture = createBulletTexture();
+            bullet.sprite.texture = bullet.texture;
+          });
+          asteroids.forEach(asteroid => {
+            let gfx = new PIXI.Graphics();
+            gfx.lineStyle(2, 0xFFFFFF);
+            gfx.beginFill(0x555555);
+            gfx.moveTo(asteroid.points[0].x, asteroid.points[0].y);
+            for (let i = 1; i < asteroid.points.length; i++) {
+              gfx.lineTo(asteroid.points[i].x, asteroid.points[i].y);
             }
-            shootSound.currentTime = 0;
-            shootSound.play();
+            gfx.closePath();
+            gfx.endFill();
+            asteroid.texture = app.renderer.generateTexture(gfx);
+            asteroid.sprite.texture = asteroid.texture;
+          });
+        });
+
+      } catch (error) {
+        console.error("PIXI initialization failed:", error);
+        // Fallback to basic WebGL renderer
+        rendererOptions.forceCanvas = true;
+        rendererOptions.antialias = false;
+        app = new PIXI.Application(rendererOptions);
+      }
+      
+      console.log("PIXI Application created with renderer type:", app.renderer.type);
+
+      // Create a background container for effects that should render behind everything
+      const backgroundContainer = new PIXI.Container();
+      app.stage.addChild(backgroundContainer);
+      app.stage.setChildIndex(backgroundContainer, 0);  // Ensure it's at the back
+
+      document.body.appendChild(app.view);
+      
+      // Listen for window resize events to update the renderer dimensions.
+      window.addEventListener('resize', () => {
+        app.renderer.resize(window.innerWidth, window.innerHeight);
+      });
+      
+      // --------------------------------------------------
+      // Utility Classes and Functions
+      // --------------------------------------------------
+      
+      // spawnExplosion function to generate particles at a given position.
+      function spawnExplosion(position, size) {
+        if (particles.length >= MAX_PARTICLES) return;
+        
+        // Scale effects based on asteroid size
+        const particleScale = Math.min(1, 4 / size);
+        
+        // Apply screen shake based on asteroid size (only for largest asteroids)
+        if (size >= 4) {
+          const shakeIntensity = size * 4; // Size 5 = 20, Size 4 = 16
+          applyScreenShake(shakeIntensity);
+        }
+        
+        // Create shockwave scaled to asteroid size
+        if (size >= 2) {
+          const shockwaveSize = size / 2; // Scale shockwave with asteroid size
+          const particle = getParticleFromPool(position, 'shockwave', shockwaveSize);
+          if (particle) particles.push(particle);
+        }
+        
+        // Scale debris and spark counts based on size but with limits
+        const numDebris = Math.floor(Math.min(15, 8 * size * particleScale));
+        const numSparks = Math.floor(Math.min(10, 5 * size * particleScale));
+        
+        for (let i = 0; i < numDebris && particles.length < MAX_PARTICLES; i++) {
+          const debris = getParticleFromPool(position, 'debris', size);
+          if (debris) particles.push(debris);
+        }
+        
+        for (let i = 0; i < numSparks && particles.length < MAX_PARTICLES; i++) {
+          const spark = getParticleFromPool(position, 'spark', size);
+          if (spark) particles.push(spark);
+        }
+      }
+      
+      // --------------------------------------------------
+      // Pre-rendered Texture Helper Functions
+      // --------------------------------------------------
+      function createSpaceshipTexture() {
+        let gfx = new PIXI.Graphics();
+        
+        // Modern color scheme
+        const primaryColor = 0x3498db;    // Bright blue
+        const secondaryColor = 0xe74c3c;  // Red accent
+        const detailColor = 0xecf0f1;     // Light gray details
+        const glowColor = 0x2ecc71;       // Green engine glow
+        
+        // Main body - sleek design
+        gfx.lineStyle(2, detailColor, 0.8);
+        gfx.beginFill(primaryColor, 0.9);
+        
+        // Draw streamlined ship shape
+        gfx.moveTo(0, -35);          // Top point
+        gfx.quadraticCurveTo(25, 10, 15, 35);  // Right curve
+        gfx.lineTo(-15, 35);         // Bottom
+        gfx.quadraticCurveTo(-25, 10, 0, -35); // Left curve
+        gfx.endFill();
+
+        // Wing details
+        gfx.lineStyle(2, detailColor, 0.6);
+        gfx.beginFill(secondaryColor, 0.8);
+        // Left wing
+        gfx.moveTo(-15, 15);
+        gfx.lineTo(-30, 25);
+        gfx.lineTo(-15, 35);
+        // Right wing
+        gfx.moveTo(15, 15);
+        gfx.lineTo(30, 25);
+        gfx.lineTo(15, 35);
+        gfx.endFill();
+
+        // Cockpit
+        gfx.lineStyle(1, 0xFFFFFF, 0.9);
+        gfx.beginFill(0x2980b9, 0.7);  // Transparent blue
+        gfx.drawEllipse(0, 0, 8, 12);
+        gfx.endFill();
+
+        // Engine glow effect
+        gfx.lineStyle(0);
+        gfx.beginFill(glowColor, 0.3);
+        gfx.drawCircle(-8, 25, 5);
+        gfx.drawCircle(8, 25, 5);
+        gfx.endFill();
+
+        // Detail lines
+        gfx.lineStyle(1, detailColor, 0.5);
+        gfx.moveTo(-12, -15);
+        gfx.lineTo(12, -15);
+        gfx.moveTo(-8, -5);
+        gfx.lineTo(8, -5);
+
+        // Generate texture with high quality
+        let texture = app.renderer.generateTexture(gfx, PIXI.SCALE_MODES.LINEAR, 2);
+        return texture;
+      }
+      
+      function createBulletTexture() {
+        let gfx = new PIXI.Graphics();
+        gfx.beginFill(0xFFFFFF);
+        gfx.drawCircle(0, 0, 2);
+        gfx.endFill();
+        let texture = app.renderer.generateTexture(gfx);
+        console.log("Bullet texture created.");
+        return texture;
+      }
+      
+      function createPowerUpTexture(type) {
+        let gfx = new PIXI.Graphics();
+        const size = 20;
+        
+        // Outer glow effect
+        const glowColor = type === 'spread' ? 0xFF4500 : // Orange for spread
+                         type === 'dual' ? 0x4169E1 : // Royal Blue for dual
+                         0xFFD700; // Gold for omni
+        
+        // Create outer glow
+        gfx.lineStyle(4, glowColor, 0.3);
+        gfx.drawCircle(0, 0, size + 4);
+        
+        // Main circle background
+        gfx.lineStyle(2, glowColor, 0.8);
+        gfx.beginFill(0x000000, 0.6);
+        gfx.drawCircle(0, 0, size);
+        gfx.endFill();
+
+        // Add unique design based on power-up type
+        if (type === 'spread') {
+            // Three-way spread design
+            gfx.lineStyle(2, 0xFF4500, 1);
+            // Center arrow
+            gfx.moveTo(0, -size + 5);
+            gfx.lineTo(0, size - 5);
+            // Side arrows
+            gfx.moveTo(0, 0);
+            gfx.lineTo(-size + 5, size - 5);
+            gfx.moveTo(0, 0);
+            gfx.lineTo(size - 5, size - 5);
+            
+            // Add arrowheads
+            gfx.beginFill(0xFF4500);
+            gfx.drawPolygon([
+                0, -size + 3,
+                -4, -size + 10,
+                4, -size + 10
+            ]);
+            gfx.endFill();
+            
+        } else if (type === 'dual') {
+            // Parallel lines design
+            gfx.lineStyle(3, 0x4169E1, 1);
+            // Left line
+            gfx.moveTo(-8, -size + 5);
+            gfx.lineTo(-8, size - 5);
+            // Right line
+            gfx.moveTo(8, -size + 5);
+            gfx.lineTo(8, size - 5);
+            
+            // Add arrow tips
+            gfx.beginFill(0x4169E1);
+            gfx.drawPolygon([
+                -8, -size + 3,
+                -12, -size + 10,
+                -4, -size + 10
+            ]);
+            gfx.drawPolygon([
+                8, -size + 3,
+                4, -size + 10,
+                12, -size + 10
+            ]);
+            gfx.endFill();
+            
+        } else { // omni
+            // Circular burst design
+            gfx.lineStyle(2, 0xFFD700, 1);
+            for (let i = 0; i < 8; i++) {
+                const angle = (i * Math.PI / 4);
+                const innerRadius = size * 0.4;
+                const outerRadius = size * 0.8;
+                gfx.moveTo(
+                    Math.cos(angle) * innerRadius,
+                    Math.sin(angle) * innerRadius
+                );
+                gfx.lineTo(
+                    Math.cos(angle) * outerRadius,
+                    Math.sin(angle) * outerRadius
+                );
+                
+                // Add small circles at the end of each line
+                gfx.beginFill(0xFFD700);
+                gfx.drawCircle(
+                    Math.cos(angle) * outerRadius,
+                    Math.sin(angle) * outerRadius,
+                    2
+                );
+                gfx.endFill();
+            }
+            
+            // Center circle
+            gfx.beginFill(0xFFD700);
+            gfx.drawCircle(0, 0, 4);
+            gfx.endFill();
+        }
+
+        // Add pulsing inner glow
+        gfx.beginFill(glowColor, 0.3);
+        gfx.drawCircle(0, 0, size * 0.5);
+        gfx.endFill();
+
+        let texture = app.renderer.generateTexture(gfx, PIXI.SCALE_MODES.LINEAR, 2);
+        return texture;
+      }
+      
+      function generateAsteroidPoints(radius, numPoints) {
+        const points = [];
+        const phase1 = Math.random() * 2 * Math.PI;
+        const phase2 = Math.random() * 2 * Math.PI;
+        for (let i = 0; i < numPoints; i++) {
+          let angle = i * (2 * Math.PI / numPoints);
+          let noise = 1 + 0.2 * Math.sin(angle * 3 + phase1) + 0.1 * Math.sin(angle * 7 + phase2);
+          points.push({ x: Math.cos(angle) * radius * noise, y: Math.sin(angle) * radius * noise });
+        }
+        return points;
+      }
+      
+      // --------------------------------------------------
+      // GAME OBJECT CLASSES (Using PixiJS)
+      // --------------------------------------------------
+      
+      class Spaceship {
+        constructor(x, y) {
+          // Create container first
+          this.container = new PIXI.Container();
+          
+          // Initialize properties
+          this.position = new Vector2(x, y);
+          this.velocity = new Vector2(0, 0);
+          this.angle = 0;
+          this.thrusting = false;
+          this.powerupActive = false;
+          this.powerupTimer = 0;
+          this.powerupType = null;
+          
+          // Create flame first (so it's behind the ship)
+          this.flame = new PIXI.Graphics();
+          this.container.addChild(this.flame);
+          
+          // Create ship sprite
+          this.texture = createSpaceshipTexture();
+          this.sprite = new PIXI.Sprite(this.texture);
+          this.sprite.anchor.set(0.5);
+          this.sprite.x = 0;  // Relative to container
+          this.sprite.y = 0;  // Relative to container
+          this.container.addChild(this.sprite);
+          
+          // Position the container
+          this.container.position.set(x, y);
+          
+          // Add to stage
+          app.stage.addChild(this.container);
+          
+          console.log("Spaceship created at:", x, y);
+          
+          // Add ship dimensions for better collision
+          this.width = 30;  // Half width of the ship
+          this.height = 35; // Half height of the ship
+          
+          // Define ship collision points for more precise collision detection
+          this.collisionPoints = [
+            {x: 0, y: -35},    // Nose
+            {x: 15, y: 35},    // Bottom right
+            {x: -15, y: 35},   // Bottom left
+            {x: 30, y: 25},    // Right wing tip
+            {x: -30, y: 25},   // Left wing tip
+          ];
+          this.collisionRadius = 12; // Even tighter collision radius
+        }
+        
+        getBulletSpawnPosition() {
+          // Spawn bullets from the nose of the ship
+          const rad = this.angle * Math.PI / 180;
+          const noseOffset = 35; // Distance from center to nose
+          return new Vector2(
+            this.position.x + Math.sin(rad) * noseOffset,
+            this.position.y - Math.cos(rad) * noseOffset
+          );
+        }
+
+        checkCollision(point, radius) {
+          // Quick broad-phase check
+          const dx = point.x - this.position.x;
+          const dy = point.y - this.position.y;
+          const quickDistance = Math.sqrt(dx * dx + dy * dy);
+          
+          // If definitely too far, return false early
+          if (quickDistance > this.height + radius) return false;
+          
+          // Convert asteroid position to ship's local space
+          const rad = -this.angle * Math.PI / 180;
+          const localX = dx * Math.cos(rad) - dy * Math.sin(rad);
+          const localY = dx * Math.sin(rad) + dy * Math.cos(rad);
+          
+          // Check each collision point of the ship
+          for (let collisionPoint of this.collisionPoints) {
+            const pointDx = localX - collisionPoint.x;
+            const pointDy = localY - collisionPoint.y;
+            const pointDistance = Math.sqrt(pointDx * pointDx + pointDy * pointDy);
+            
+            if (pointDistance < radius * 0.7) { // Reduced collision threshold
+              return true;
+            }
+          }
+          
+          // Check if asteroid center is inside ship's main body
+          const SHIP_PRECISION = 0.8; // Higher means tighter collision
+          if (Math.abs(localX) < this.width * SHIP_PRECISION && 
+              Math.abs(localY) < this.height * SHIP_PRECISION) {
+            return true;
+          }
+          
+          return false;
+        }
+        
+        update(delta) {
+          // Smooth rotation
+          if (keys["ArrowLeft"]) { 
+            this.angle = (this.angle + PLAYER_ROTATION_SPEED * delta) % 360;
+          }
+          if (keys["ArrowRight"]) { 
+            this.angle = (this.angle - PLAYER_ROTATION_SPEED * delta) % 360;
+          }
+
+          if (keys["ArrowUp"]) {
+            this.thrusting = true;
+            let rad = this.angle * Math.PI / 180;
+            let force = new Vector2(Math.sin(rad), -Math.cos(rad)).multiply(PLAYER_ACCELERATION * delta);
+            let newVelocity = this.velocity.add(force);
+            
+            // Apply speed limit
+            let speed = Math.sqrt(newVelocity.x * newVelocity.x + newVelocity.y * newVelocity.y);
+            if (speed > PLAYER_MAX_SPEED) {
+              newVelocity = newVelocity.multiply(PLAYER_MAX_SPEED / speed);
+            }
+            this.velocity = newVelocity;
           } else {
-            bullets.push(new Bullet(spaceship.pos, spaceship.angle));
-            shootCooldown = SHOOT_COOLDOWN_NORMAL;
-            shootSound.currentTime = 0;
-            shootSound.play();
+            this.thrusting = false;
+          }
+          
+          if (this.powerupActive) {
+            this.powerupTimer -= delta;
+            if (this.powerupTimer <= 0) {
+              this.powerupActive = false;
+              this.powerupType = null;
+            }
+          }
+          
+          // Apply friction
+          this.velocity = this.velocity.multiply(Math.pow(PLAYER_FRICTION, delta));
+          
+          // Update position with wrapping
+          this.position = this.position.add(this.velocity.multiply(delta));
+          this.position.x = ((this.position.x % app.screen.width) + app.screen.width) % app.screen.width;
+          this.position.y = ((this.position.y % app.screen.height) + app.screen.height) % app.screen.height;
+          
+          if (this.thrusting) {
+            this.flame.visible = true;
+            this.flame.clear();
+            
+            // Improved flame effect
+            const flameLength = 25 + Math.random() * 10;
+            
+            // Outer flame (orange)
+            this.flame.beginFill(0xFF4500, 0.8);
+            this.flame.moveTo(-10, 30);
+            this.flame.lineTo(0, 30 + flameLength);
+            this.flame.lineTo(10, 30);
+            this.flame.endFill();
+            
+            // Inner flame (yellow)
+            this.flame.beginFill(0xFFFF00, 0.5);
+            this.flame.moveTo(-5, 30);
+            this.flame.lineTo(0, 30 + flameLength * 0.7);
+            this.flame.lineTo(5, 30);
+            this.flame.endFill();
+          } else {
+            this.flame.visible = false;
+          }
+          
+          // Update position and rotation
+          this.container.position.set(this.position.x, this.position.y);
+          this.container.rotation = this.angle * Math.PI / 180;
+          
+          // Update HUD for powerup status
+          const powerupStatus = document.getElementById('powerupStatus');
+          if (this.powerupActive) {
+            const timeLeft = Math.ceil(this.powerupTimer / 60);
+            powerupStatus.textContent = `POWERUP: ${this.powerupType.toUpperCase()} (${timeLeft}s)`;
+            powerupStatus.style.display = 'block';
+          } else {
+            powerupStatus.style.display = 'none';
           }
         }
-        if (shootCooldown > 0) { shootCooldown -= factor; }
-    
+      }
+      
+      class Bullet {
+        constructor(position, angle, shipVelocity) {
+          this.position = position.clone();
+          this.angle = angle;
+          let rad = angle * Math.PI / 180;
+          // Add ship's velocity to bullet velocity for more realistic physics
+          const bulletSpeed = 12; // Increased from 8
+          this.velocity = new Vector2(
+            Math.sin(rad) * bulletSpeed + shipVelocity.x,
+            -Math.cos(rad) * bulletSpeed + shipVelocity.y
+          );
+          this.life = 60;
+          this.texture = createBulletTexture();
+          this.sprite = new PIXI.Sprite(this.texture);
+          this.sprite.anchor.set(0.5);
+          this.sprite.x = position.x;
+          this.sprite.y = position.y;
+          app.stage.addChild(this.sprite);
+        }
+        
+        update(delta) {
+          this.position = this.position.add(this.velocity.multiply(delta));
+          this.life -= delta;
+          if (this.position.x < 0) this.position.x = app.screen.width;
+          if (this.position.x > app.screen.width) this.position.x = 0;
+          if (this.position.y < 0) this.position.y = app.screen.height;
+          if (this.position.y > app.screen.height) this.position.y = 0;
+          this.sprite.x = this.position.x;
+          this.sprite.y = this.position.y;
+        }
+      }
+      
+      class Asteroid {
+        constructor(position, size) {
+          this.active = true;
+          this.sprite = null;
+          this.reset(position, size);
+        }
+        
+        reset(position, size) {
+          this.position = position.clone();
+          this.size = size;
+          this.active = true;
+          // Make radius match visual size more closely, with size 5 being extra large
+          this.radius = size === 5 ? 10 * size : 10 * size;  // Size 5 gets 2x multiplier (increased from 1.5x)
+          this.collisionRadius = this.radius * 0.7; // Even tighter collision (reduced from 0.8)
+          this.mass = Math.PI * this.radius * this.radius;
+          
+          // Initialize movement with stricter speed limits
+          let angle = Math.random() * 360;
+          const baseSpeed = 0.8;  // Reduced from 1.2 for slower overall movement
+          const speedMultiplier = Math.pow(0.95, size); // Made size penalty less severe (changed from 0.9)
+          this.maxSpeed = baseSpeed * (6 - size) * 0.5; // Adjusted formula to work with size 5
+          
+          this.velocity = new Vector2(
+            Math.cos(angle * Math.PI / 180),
+            Math.sin(angle * Math.PI / 180)
+          ).multiply(baseSpeed * speedMultiplier * (0.9 + Math.random() * 0.2));
+          
+          this.angle = Math.random() * 360;
+          this.rotationSpeed = (Math.random() * 2 - 1) * (2 / size); // Reduced rotation speed
+          this.maxRotationSpeed = 5; // Maximum rotation speed
+          
+          // Visual setup
+          const numPoints = Math.floor(8 + size * 3 + Math.random() * 4);
+          this.points = this.generateDetailedAsteroidPoints(this.radius, numPoints);
+          this.updateGraphics();
+        }
+        
+        generateDetailedAsteroidPoints(radius, numPoints) {
+          const points = [];
+          // Multiple noise frequencies for realistic rock formation
+          const frequencies = [1, 2, 3, 4, 6, 8];
+          const amplitudes = [0.2, 0.12, 0.08, 0.05, 0.03, 0.02];
+          const phases = frequencies.map(() => Math.random() * Math.PI * 2);
+          
+          for (let i = 0; i < numPoints; i++) {
+            let angle = (i * 2 * Math.PI / numPoints);
+            let noise = 1;
+            
+            // Apply multiple frequencies of noise for natural rock-like shape
+            for (let j = 0; j < frequencies.length; j++) {
+              noise += amplitudes[j] * Math.sin(angle * frequencies[j] + phases[j]);
+            }
+            
+            // Add some random variation
+            noise *= (0.9 + Math.random() * 0.2);
+            
+            points.push({
+              x: Math.cos(angle) * radius * noise,
+              y: Math.sin(angle) * radius * noise
+            });
+          }
+          return points;
+        }
+        
+        updateGraphics() {
+          let gfx = new PIXI.Graphics();
+          
+          // Select a base grey value and add subtle variation ensuring the result remains a grey shade.
+          const baseGreys = [80, 96, 112, 128]; // base grey values for R, G, B channels
+          const base = baseGreys[Math.floor(Math.random() * baseGreys.length)];
+          const variationSteps = Math.floor(Math.random() * 3) - 1; // -1, 0, or 1
+          let finalGray = Math.max(64, Math.min(144, base + variationSteps));
+          const fillColor = (finalGray << 16) | (finalGray << 8) | finalGray;
+          
+          // Main asteroid shape with darker outline
+          gfx.lineStyle(2, 0x404040, 0.6);  // Consistent dark grey outline
+          gfx.beginFill(fillColor, 0.95);
+          
+          // Draw the complex asteroid shape
+          gfx.moveTo(this.points[0].x, this.points[0].y);
+          for (let i = 1; i < this.points.length; i++) {
+            const nextIndex = (i + 1) % this.points.length;
+            const midX = (this.points[i].x + this.points[nextIndex].x) / 2;
+            const midY = (this.points[i].y + this.points[nextIndex].y) / 2;
+            
+            gfx.quadraticCurveTo(
+              this.points[i].x,
+              this.points[i].y,
+              midX,
+              midY
+            );
+          }
+          gfx.closePath();
+          gfx.endFill();
+          
+          // Add detailed surface features
+          this.addSurfaceDetail(gfx, fillColor);
+          
+          // Add a subtle shadow effect
+          const glowSize = this.radius * 1.1;
+          gfx.lineStyle(0);
+          gfx.beginFill(0x000000, 0.2);
+          gfx.drawCircle(2, 2, glowSize);
+          gfx.endFill();
+          
+          this.texture = app.renderer.generateTexture(gfx, PIXI.SCALE_MODES.LINEAR, 2);
+          if (this.sprite) {
+            this.sprite.texture = this.texture;
+          } else {
+            this.sprite = new PIXI.Sprite(this.texture);
+            this.sprite.anchor.set(0.5);
+            app.stage.addChild(this.sprite);
+          }
+        }
+        
+        addSurfaceDetail(gfx, baseColor) {
+          const numLayers = 3;
+          const numDetailsPerLayer = Math.floor(this.size * 4);
+          
+          // Strictly grey crater colors
+          const craterColors = [
+            0x404040, // Darkest grey (deep shadows)
+            0x505050, // Dark grey
+            0x606060, // Medium grey
+            0x707070  // Light grey
+          ];
+          
+          for (let layer = 0; layer < numLayers; layer++) {
+            const alpha = 0.4 - (layer * 0.1);
+            const craterSize = this.radius * (0.25 - (layer * 0.05));
+            
+            gfx.lineStyle(1, craterColors[layer], alpha * 0.8);
+            
+            for (let i = 0; i < numDetailsPerLayer; i++) {
+              const angle = Math.random() * Math.PI * 2;
+              const dist = Math.random() * this.radius * 0.85;
+              const x = Math.cos(angle) * dist;
+              const y = Math.sin(angle) * dist;
+              
+              const radiusVariation = 0.7 + Math.random() * 0.6;
+              const craterWidth = craterSize * radiusVariation;
+              const craterHeight = craterSize * radiusVariation * (0.8 + Math.random() * 0.4);
+              
+              // Draw crater
+              gfx.beginFill(craterColors[layer], alpha);
+              gfx.drawEllipse(x, y, craterWidth, craterHeight);
+              gfx.endFill();
+              
+              // Add highlight with lighter grey
+              if (Math.random() < 0.4) {
+                gfx.lineStyle(1, 0x808080, alpha * 0.3);
+                const highlightAngle = Math.random() * Math.PI * 2;
+                const highlightLength = craterSize * (0.3 + Math.random() * 0.3);
+                gfx.moveTo(x, y);
+                gfx.lineTo(
+                  x + Math.cos(highlightAngle) * highlightLength,
+                  y + Math.sin(highlightAngle) * highlightLength
+                );
+              }
+              
+              // Add cracks with dark grey
+              if (Math.random() < 0.2) {
+                gfx.lineStyle(1, 0x404040, alpha * 0.4);
+                const crackAngle = Math.random() * Math.PI * 2;
+                const crackLength = craterSize * (1 + Math.random());
+                const startX = x + Math.cos(crackAngle) * craterWidth;
+                const startY = y + Math.sin(crackAngle) * craterHeight;
+                gfx.moveTo(startX, startY);
+                
+                let currentX = startX;
+                let currentY = startY;
+                const segments = 3 + Math.floor(Math.random() * 3);
+                for (let j = 0; j < segments; j++) {
+                  const segmentAngle = crackAngle + (Math.random() * 0.5 - 0.25);
+                  const segmentLength = crackLength / segments;
+                  currentX += Math.cos(segmentAngle) * segmentLength;
+                  currentY += Math.sin(segmentAngle) * segmentLength;
+                  gfx.lineTo(currentX, currentY);
+                }
+              }
+            }
+          }
+        }
+        
+        update(delta) {
+          // Normalize delta time
+          const normalizedDelta = Math.min(delta * (60 / NOMINAL_FPS), 2.0); // Cap maximum delta
+          
+          // Apply velocity with speed limits
+          const currentSpeed = Math.sqrt(
+            this.velocity.x * this.velocity.x + 
+            this.velocity.y * this.velocity.y
+          );
+          
+          // Enforce both minimum and maximum speeds
+          if (currentSpeed < MIN_ASTEROID_SPEED) {
+            const scale = MIN_ASTEROID_SPEED / currentSpeed;
+            this.velocity.x *= scale;
+            this.velocity.y *= scale;
+          } else if (currentSpeed > this.maxSpeed) {
+            const scale = this.maxSpeed / currentSpeed;
+            this.velocity.x *= scale;
+            this.velocity.y *= scale;
+          }
+          
+          // Update position
+          this.position = this.position.add(this.velocity.multiply(normalizedDelta));
+          
+          // Improved screen wrapping
+          const margin = this.radius * 2;
+          if (this.position.x < -margin) this.position.x = app.screen.width + this.radius;
+          if (this.position.x > app.screen.width + margin) this.position.x = -this.radius;
+          if (this.position.y < -margin) this.position.y = app.screen.height + this.radius;
+          if (this.position.y > app.screen.height + margin) this.position.y = -this.radius;
+          
+          // Cap rotation speed
+          this.rotationSpeed = Math.max(
+            Math.min(this.rotationSpeed, this.maxRotationSpeed),
+            -this.maxRotationSpeed
+          );
+          
+          // Update rotation
+          this.angle = (this.angle + this.rotationSpeed * normalizedDelta) % 360;
+          
+          // Update sprite
+          this.sprite.x = this.position.x;
+          this.sprite.y = this.position.y;
+          this.sprite.rotation = this.angle * Math.PI / 180;
+        }
+
+        checkCollision(other) {
+          // Quick distance check first
+          const distance = this.position.distanceTo(other.position);
+          const minDistance = this.collisionRadius + other.collisionRadius;
+          
+          // Return false if definitely not colliding
+          if (distance > minDistance) return false;
+          
+          // For very close objects, check actual points
+          const COLLISION_PRECISION = 0.9; // Higher number means tighter collisions
+          if (distance < minDistance * COLLISION_PRECISION) {
+            // Check if any point of this asteroid is inside the other asteroid
+            for (let point of this.points) {
+              const worldX = this.position.x + 
+                point.x * Math.cos(this.angle * Math.PI / 180) - 
+                point.y * Math.sin(this.angle * Math.PI / 180);
+              const worldY = this.position.y + 
+                point.x * Math.sin(this.angle * Math.PI / 180) + 
+                point.y * Math.cos(this.angle * Math.PI / 180);
+              
+              const dx = worldX - other.position.x;
+              const dy = worldY - other.position.y;
+              const pointDistance = Math.sqrt(dx * dx + dy * dy);
+              
+              if (pointDistance < other.collisionRadius * COLLISION_PRECISION) {
+                return true;
+              }
+            }
+            
+            // Check points of other asteroid against this one
+            for (let point of other.points) {
+              const worldX = other.position.x + 
+                point.x * Math.cos(other.angle * Math.PI / 180) - 
+                point.y * Math.sin(other.angle * Math.PI / 180);
+              const worldY = other.position.y + 
+                point.x * Math.sin(other.angle * Math.PI / 180) + 
+                point.y * Math.cos(other.angle * Math.PI / 180);
+              
+              const dx = worldX - this.position.x;
+              const dy = worldY - this.position.y;
+              const pointDistance = Math.sqrt(dx * dx + dy * dy);
+              
+              if (pointDistance < this.collisionRadius * COLLISION_PRECISION) {
+                return true;
+              }
+            }
+          }
+          
+          return false;
+        }
+
+        handleCollision(other) {
+          // Calculate collision normal
+          const dx = other.position.x - this.position.x;
+          const dy = other.position.y - this.position.y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+          
+          // Prevent division by zero
+          if (distance < 0.0001) return;
+          
+          const nx = dx / distance;
+          const ny = dy / distance;
+
+          // Calculate relative velocity
+          const dvx = other.velocity.x - this.velocity.x;
+          const dvy = other.velocity.y - this.velocity.y;
+          
+          // Calculate collision response
+          const restitution = 0.5; // Reduced bounciness
+          const velocityAlongNormal = dvx * nx + dvy * ny;
+          
+          // Only resolve if objects are moving toward each other
+          if (velocityAlongNormal > 0) return;
+          
+          const j = -(1 + restitution) * velocityAlongNormal;
+          const impulseScalar = j / (1/this.mass + 1/other.mass);
+          
+          // Apply impulse with dampening
+          const dampening = 0.98; // Slight energy loss
+          const impulseX = impulseScalar * nx * dampening;
+          const impulseY = impulseScalar * ny * dampening;
+          
+          this.velocity.x -= impulseX / this.mass;
+          this.velocity.y -= impulseY / this.mass;
+          other.velocity.x += impulseX / other.mass;
+          other.velocity.y += impulseY / other.mass;
+
+          // Prevent sticking by ensuring minimum separation
+          const overlap = (this.radius + other.radius) - distance;
+          if (overlap > 0) {
+            const percent = 0.8; // Penetration resolution percentage
+            const separationX = (overlap * nx * percent) / 2;
+            const separationY = (overlap * ny * percent) / 2;
+            
+            this.position.x -= separationX;
+            this.position.y -= separationY;
+            other.position.x += separationX;
+            other.position.y += separationY;
+          }
+          
+          // Add controlled rotation change
+          const rotationFactor = 0.2;
+          const relativeSpeed = Math.sqrt(dvx * dvx + dvy * dvy);
+          const rotationChange = (Math.random() - 0.5) * rotationFactor * relativeSpeed;
+          
+          this.rotationSpeed = (this.rotationSpeed + rotationChange) * 0.8;
+          other.rotationSpeed = (other.rotationSpeed - rotationChange) * 0.8;
+        }
+      }
+      
+      class Particle {
+        constructor(position, type = 'debris', size = 1) {
+          this.active = true;
+          this.sprite = null;
+          this.reset(position, type, size);
+        }
+
+        reset(position, type, size) {
+          this.position = position.clone();
+          this.type = type;
+          this.size = size;
+          this.active = true;
+          this.color = null;  // Allow custom color override
+          let angle = Math.random() * 2 * Math.PI;
+          
+          // Different behaviors based on particle type
+          switch(type) {
+            case 'debris':
+              this.velocity = new Vector2(Math.cos(angle), Math.sin(angle))
+                .multiply(4 + Math.random() * 5);  // Increased speed range
+              this.life = 60 + Math.random() * 60;  // Longer life for more dramatic effect
+              this.rotationSpeed = (Math.random() - 0.5) * 0.3;
+              this.particleSize = 2 + Math.random() * 3;  // Larger debris
+              this.fadeStart = 0.3;  // Start fading later
+              break;
+            case 'spark':
+              angle = Math.random() * 2 * Math.PI;
+              this.velocity = new Vector2(Math.cos(angle), Math.sin(angle))
+                .multiply(6 + Math.random() * 8);  // Faster sparks
+              this.life = 30 + Math.random() * 20;
+              this.rotationSpeed = 0;
+              this.particleSize = 1.5 + Math.random();  // Slightly larger sparks
+              this.fadeStart = 0.5;
+              break;
+            case 'shockwave':
+              this.velocity = new Vector2(0, 0);
+              this.life = 20;
+              this.rotationSpeed = 0;
+              this.particleSize = 1;
+              this.radius = 5;
+              this.fadeStart = 0.2;
+              break;
+          }
+          
+          this.initialLife = this.life;
+          
+          // Create particle graphics
+          let gfx = new PIXI.Graphics();
+          
+          if (type === 'shockwave') {
+            const alpha = 0.05;  // Reduced from 0.4 for dimmer shockwaves
+            gfx.lineStyle(2, 0xFFFFFF, alpha);  // Thicker line
+            gfx.drawCircle(0, 0, 5);
+            this.sprite = new PIXI.Sprite(app.renderer.generateTexture(gfx));
+            this.sprite.anchor.set(0.5);
+            this.sprite.x = position.x;
+            this.sprite.y = position.y;
+            this.sprite.blendMode = PIXI.BLEND_MODES.ADD;
+            backgroundContainer.addChild(this.sprite);
+          } else {
+            const colors = type === 'spark' 
+              ? [0xffff00, 0xff4500, 0xff0000] // Brighter fire colors
+              : [0xff4d4d, 0xff944d, 0xffff4d, 0x94ff4d, 0x4dffff, 0x4d94ff, 0xff4dff];
+            let color = this.color || colors[Math.floor(Math.random() * colors.length)];
+            
+            if (type === 'debris') {
+              // More complex debris shapes
+              const points = [];
+              const numPoints = 4 + Math.floor(Math.random() * 3);
+              const baseSize = this.particleSize;
+              
+              for (let i = 0; i < numPoints; i++) {
+                const angle = (i / numPoints) * Math.PI * 2;
+                const dist = baseSize * (0.7 + Math.random() * 0.6);
+                points.push(
+                  Math.cos(angle) * dist,
+                  Math.sin(angle) * dist
+                );
+              }
+              
+              // Add inner glow effect
+              const glowColor = 0xFFFFFF;
+              gfx.beginFill(glowColor, 0.3);
+              gfx.drawPolygon(points);
+              gfx.endFill();
+              
+              // Main debris color
+              gfx.beginFill(color, 0.9);
+              gfx.drawPolygon(points);
+              gfx.endFill();
+              
+              // Add highlight
+              gfx.lineStyle(1, 0xFFFFFF, 0.5);
+              gfx.drawPolygon(points);
+            } else {
+              // Enhanced spark appearance
+              const innerColor = 0xFFFFFF;  // White core
+              gfx.beginFill(innerColor, 0.9);
+              gfx.drawCircle(0, 0, this.particleSize * 0.5);
+              gfx.endFill();
+              
+              gfx.beginFill(color, 0.8);
+              gfx.drawCircle(0, 0, this.particleSize);
+              gfx.endFill();
+            }
+            
+            this.texture = app.renderer.generateTexture(gfx);
+            this.sprite = new PIXI.Sprite(this.texture);
+            this.sprite.anchor.set(0.5);
+            this.sprite.x = position.x;
+            this.sprite.y = position.y;
+            
+            // Add bloom effect for sparks
+            if (type === 'spark') {
+              this.sprite.blendMode = PIXI.BLEND_MODES.ADD;
+            }
+            
+            app.stage.addChild(this.sprite);
+          }
+        }
+        
+        update(delta) {
+          if (this.type === 'shockwave') {
+            this.radius += delta * 8;  // Faster expansion
+            this.sprite.scale.x = this.radius;
+            this.sprite.scale.y = this.radius;
+            this.sprite.alpha = (this.life / this.initialLife) * 0.4;
+          } else {
+            // Enhanced movement for debris
+            if (this.type === 'debris') {
+              this.velocity.x += (Math.random() - 0.5) * 0.3;
+              this.velocity.y += (Math.random() - 0.5) * 0.3;
+              // Add slight gravity effect
+              this.velocity.y += 0.1 * delta;
+            }
+            
+            this.position = this.position.add(this.velocity.multiply(delta));
+            this.angle += this.rotationSpeed * delta;
+            
+            // Improved fade out
+            const fadeStart = this.initialLife * this.fadeStart;
+            if (this.life < fadeStart) {
+              this.sprite.alpha = (this.life / fadeStart) * 0.9 + 0.1;  // Never fully transparent
+            }
+            
+            // Scale reduction near end of life for debris
+            if (this.type === 'debris' && this.life < fadeStart) {
+              const scale = 0.8 + (this.life / fadeStart) * 0.2;
+              this.sprite.scale.set(scale);
+            }
+            
+            if (this.type === 'debris') {
+              this.sprite.rotation = this.angle;
+            }
+          }
+          
+          this.sprite.x = this.position.x;
+          this.sprite.y = this.position.y;
+          this.life -= delta;
+        }
+      }
+      
+      class PowerUp {
+        constructor(position) {
+          this.position = position.clone();
+          const types = ["spread", "dual", "omni"];
+          this.type = types[Math.floor(Math.random() * types.length)];
+          this.velocity = new Vector2(Math.random() * 2 - 1, Math.random() * 2 - 1);
+          this.texture = createPowerUpTexture(this.type);
+          this.sprite = new PIXI.Sprite(this.texture);
+          this.sprite.anchor.set(0.5);
+          this.sprite.x = position.x;
+          this.sprite.y = position.y;
+          this.lifetime = POWERUP_LIFETIME;  // Initialize lifetime
+          
+          // Animation properties
+          this.rotationSpeed = (Math.random() - 0.5) * 0.05;  // Slow rotation
+          this.pulseTime = 0;
+          this.baseScale = 1;
+          this.pulseAmount = 0.05;  // Reduced from 0.1 for more subtle effect
+          
+          app.stage.addChild(this.sprite);
+        }
+        
+        update(delta) {
+          this.lifetime -= delta;  // Decrease lifetime
+          
+          // Update position with slight floating motion
+          this.velocity.y += Math.sin(this.lifetime * 0.02) * 0.01;  // Add gentle floating
+          this.position = this.position.add(this.velocity.multiply(delta));
+          if (this.position.x < 0) this.position.x = app.screen.width;
+          if (this.position.x > app.screen.width) this.position.x = 0;
+          if (this.position.y < 0) this.position.y = app.screen.height;
+          if (this.position.y > app.screen.height) this.position.y = 0;
+          
+          // Update sprite position
+          this.sprite.x = this.position.x;
+          this.sprite.y = this.position.y;
+          
+          // Update rotation
+          this.sprite.rotation += this.rotationSpeed * delta;
+          
+          // Update pulsing effect
+          this.pulseTime += delta * 0.05;  // Reduced from 0.1 for slower pulsing
+          const pulseScale = this.baseScale + Math.sin(this.pulseTime) * this.pulseAmount;
+          this.sprite.scale.set(pulseScale);
+          
+          // Fade out when lifetime is low
+          if (this.lifetime < 60) {  // Start fading in the last second
+            this.sprite.alpha = this.lifetime / 60;
+          }
+          
+          return this.lifetime > 0;  // Return false when powerup should be removed
+        }
+      }
+      
+      console.log("Classes defined: Spaceship, Bullet, Asteroid, Particle, PowerUp");
+      
+      // --------------------------------------------------
+      // GLOBAL GAME OBJECTS & INITIALIZATION
+      // --------------------------------------------------
+      let spaceship = new Spaceship(app.screen.width / 2, app.screen.height / 2);
+      
+      function spawnAsteroids(num) {
+        let arr = [];
+        const actualNum = Math.min(num, MAX_ASTEROIDS - asteroids.length);
+        if (actualNum <= 0) return arr;
+        
+        const minDistance = 100; // Minimum distance between asteroids
+        
+        for (let i = 0; i < actualNum; i++) {
+          let position;
+          let attempts = 0;
+          const maxAttempts = 10;
+          
+          do {
+            let side = Math.floor(Math.random() * 4);
+            let x, y;
+            
+            // Spawn from edges with minimal offset from screen
+            const spawnOffset = 5; // Minimal spawn distance from screen edge
+            if (side === 0) { // Top
+              x = Math.random() * app.screen.width;
+              y = -spawnOffset;
+            } else if (side === 1) { // Bottom
+              x = Math.random() * app.screen.width;
+              y = app.screen.height + spawnOffset;
+            } else if (side === 2) { // Left
+              x = -spawnOffset;
+              y = Math.random() * app.screen.height;
+            } else { // Right
+              x = app.screen.width + spawnOffset;
+              y = Math.random() * app.screen.height;
+            }
+            
+            position = new Vector2(x, y);
+            
+            // Check distance from other asteroids
+            let tooClose = false;
+            for (let other of arr) {
+              if (position.distanceTo(other.position) < minDistance) {
+                tooClose = true;
+                break;
+              }
+            }
+            
+            if (!tooClose) break;
+            attempts++;
+          } while (attempts < maxAttempts);
+          
+          // Randomize size between 1 and 4 (inclusive)
+          const size = 1 + Math.floor(Math.random() * 4);  // Changed to start from size 1 instead of 2
+          let asteroid = getAsteroidFromPool(position, size);
+          
+          // Always calculate velocity towards center with some randomness
+          const centerX = app.screen.width / 2;
+          const centerY = app.screen.height / 2;
+          const angleToCenter = Math.atan2(centerY - position.y, centerX - position.x);
+          const randomAngleOffset = (Math.random() - 0.5) * Math.PI / 4; // ±45 degree variation
+          const finalAngle = angleToCenter + randomAngleOffset;
+          
+          // Calculate base speed based on size (smaller = faster)
+          const baseSpeed = 1.2;  // Increased base speed
+          const speedMultiplier = Math.pow(0.9, size); // Less aggressive size scaling (changed from 0.8)
+          const randomSpeed = baseSpeed * speedMultiplier * (0.9 + Math.random() * 0.2);
+          const speed = Math.max(MIN_ASTEROID_SPEED, randomSpeed);
+          
+          // Set velocity with guaranteed minimum speed
+          asteroid.velocity = new Vector2(
+            Math.cos(finalAngle),
+            Math.sin(finalAngle)
+          ).multiply(speed);
+          
+          // Double-check velocity is sufficient
+          const currentSpeed = Math.sqrt(
+            asteroid.velocity.x * asteroid.velocity.x + 
+            asteroid.velocity.y * asteroid.velocity.y
+          );
+          
+          if (currentSpeed < MIN_ASTEROID_SPEED) {
+            const scaleFactor = MIN_ASTEROID_SPEED / currentSpeed;
+            asteroid.velocity.x *= scaleFactor;
+            asteroid.velocity.y *= scaleFactor;
+          }
+          
+          // Ensure asteroid is marked as active
+          asteroid.active = true;
+          arr.push(asteroid);
+        }
+        return arr;
+      }
+      asteroids = spawnAsteroids(5);
+      console.log("Asteroids spawned:", asteroids.length);
+      
+      // --------------------------------------------------
+      // Display leaderboard on welcome screen.
+      // --------------------------------------------------
+      function displayWelcomeLeaderboard() {
+        getLeaderboardOnline((leaderboard) => {
+          document.getElementById("welcomeLeaderboard").innerHTML = generateLeaderboardHTML(leaderboard);
+          console.log("Welcome leaderboard updated.");
+        });
+      }
+      displayWelcomeLeaderboard();
+      
+      // Utility: Generate leaderboard HTML.
+      function generateLeaderboardHTML(leaderboard) {
+        let html = "<h2>Leaderboard</h2><ol>";
+        leaderboard.forEach(entry => {
+          const isCurrentScore = submittedScore && 
+                               entry.score === submittedScore.score && 
+                               entry.initials === submittedScore.initials && 
+                               entry.date === submittedScore.date;
+          const scoreClass = isCurrentScore ? 'highlight-score' : '';
+          html += `<li><span class="${scoreClass}">${entry.initials}: ${entry.score} (${entry.date})</span></li>`;
+        });
+        html += "</ol>";
+        return html;
+      }
+      
+      // --------------------------------------------------
+      // UI Event Listeners
+      // --------------------------------------------------
+      document.getElementById("startButton").addEventListener("click", () => {
+        // Hide the welcome screen
+        document.getElementById("welcomeScreen").style.display = "none";
+        console.log("Game started by user.");
+      });
+      
+      // --------------------------------------------------
+      // GAME LOOP USING PIXI TICKER
+      // --------------------------------------------------
+      let shootCooldown = 0;
+      app.ticker.add((delta) => {
+        // (Optional) Remove tick logging after debugging:
+        // console.log("Tick delta:", delta);
+        
+        // Use computed style to check welcome screen visibility.
+        const welcomeDisplay = window.getComputedStyle(document.getElementById("welcomeScreen")).display;
+        
+        // Update screen shake
+        updateScreenShake();
+        
+        if (!gameOver && welcomeDisplay === "none") {
+          spaceship.update(normalizedDelta(delta));
+        }
+        
+        // Update bullets.
         for (let i = bullets.length - 1; i >= 0; i--) {
-          bullets[i].update(factor);
-          if (bullets[i].life <= 0) { bullets.splice(i, 1); }
+          bullets[i].update(normalizedDelta(delta));
+          if (bullets[i].life <= 0) {
+            app.stage.removeChild(bullets[i].sprite);
+            bullets.splice(i, 1);
+          }
         }
-    
-        for (let asteroid of asteroids) { asteroid.update(factor); }
-        handleAsteroidCollisions(asteroids);
-        for (let pu of powerups) { pu.update(factor); }
-    
+        
+        // Update asteroids.
+        asteroids.forEach(asteroid => asteroid.update(normalizedDelta(delta)));
+        
+        // Update particles.
         for (let i = particles.length - 1; i >= 0; i--) {
-          particles[i].update(factor);
-          if (particles[i].life <= 0) { particles.splice(i, 1); }
+          particles[i].update(normalizedDelta(delta));
+          if (particles[i].life <= 0) {
+            particles[i].active = false;
+            if (particles[i].sprite) {
+              particles[i].sprite.visible = false;
+            }
+            particles.splice(i, 1);
+          }
         }
-    
+        
+        // Update powerups.
+        for (let i = powerups.length - 1; i >= 0; i--) {
+          if (!powerups[i].update(normalizedDelta(delta))) {
+            app.stage.removeChild(powerups[i].sprite);
+            powerups.splice(i, 1);
+          }
+        }
+        
+        // Collision: Bullets vs. Asteroids.
         for (let i = bullets.length - 1; i >= 0; i--) {
           let bullet = bullets[i];
           for (let j = asteroids.length - 1; j >= 0; j--) {
             let asteroid = asteroids[j];
-            if (bullet.pos.distanceTo(asteroid.pos) < asteroid.radius) {
-              spawnExplosion(asteroid.pos, asteroid.size);
+            // Use the tighter collision radius for bullet hits
+            if (bullet.position.distanceTo(asteroid.position) < asteroid.collisionRadius) {
+              spawnExplosion(asteroid.position, asteroid.size);
+              app.stage.removeChild(bullet.sprite);
               bullets.splice(i, 1);
+              app.stage.removeChild(asteroid.sprite);
               asteroids.splice(j, 1);
               score += 100;
-              if (Math.random() < 0.2) {
-                powerups.push(new PowerUp(asteroid.pos));
+              if (score > leaderboardHighScore) {
+                if (!highScoreDisplayed) {
+                  showHighScoreAlert();
+                  highScoreDisplayed = true;
+                }
+                currentHighScore = score;
+              }
+              // Check if we should spawn a power-up
+              if (Math.random() < POWERUP_SPAWN_CHANCE) {
+                let pu = new PowerUp(asteroid.position);
+                powerups.push(pu);
                 powerupSound.currentTime = 0;
                 powerupSound.play();
               }
               if (asteroid.size > 1) {
-                asteroids.push(new Asteroid(asteroid.pos, asteroid.size - 1));
-                asteroids.push(new Asteroid(asteroid.pos, asteroid.size - 1));
+                let a1 = new Asteroid(asteroid.position, asteroid.size - 1);
+                let a2 = new Asteroid(asteroid.position, asteroid.size - 1);
+                asteroids.push(a1, a2);
               }
               break;
             }
           }
         }
-    
+        
+        // Collision: Spaceship vs. Asteroids.
         for (let asteroid of asteroids) {
-          if (spaceship.pos.distanceTo(asteroid.pos) < asteroid.radius + spaceship.radius) {
+          if (spaceship.checkCollision(asteroid.position, asteroid.radius)) {
             if (!gameOver) {
               gameOver = true;
-              // Do not automatically submit a score; wait for the user to enter initials.
+              console.log("Game over triggered.");
               if (!deathSoundPlayed) {
                 gameoverSound.currentTime = 0;
                 gameoverSound.play();
                 deathSoundPlayed = true;
               }
+              // Add epic ship explosion
+              spawnShipExplosion(spaceship.position);
+              // Hide the ship
+              spaceship.container.visible = false;
+              
+              // Delay the game over screen
+              setTimeout(() => {
+                const container = document.getElementById("gameOverContainer");
+                if (!gameOverUISet) {
+                  if (onlineLeaderboard === null && !leaderboardFormDisplayed) {
+                    container.innerHTML = `
+                      <h1>GAME OVER</h1>
+                      <p>Final Score: ${score}</p>
+                      <p>Enter your initials (max 3 letters):</p>
+                      <input id="initialsInput" type="text" maxlength="3" placeholder="ABC" />
+                      <button id="submitScoreBtn">Submit Score</button>
+                    `;
+                    leaderboardFormDisplayed = true;
+                    const submitBtn = document.getElementById("submitScoreBtn");
+                    if (submitBtn) {
+                      submitBtn.addEventListener("click", () => {
+                        const initials = document.getElementById("initialsInput").value;
+                        updateLeaderboardOnline(score, initials);
+                        getLeaderboardOnline((leaderboard) => {
+                          onlineLeaderboard = leaderboard;
+                          container.innerHTML = `
+                            <h1>GAME OVER</h1>
+                            <p>Final Score: ${score}</p>
+                            ${generateLeaderboardHTML(onlineLeaderboard)}
+                            <button onclick="window.resetGame()">Play Again</button>
+                          `;
+                        });
+                      });
+                    }
+                  } else if (onlineLeaderboard !== null) {
+                    container.innerHTML = `
+                      <h1>GAME OVER</h1>
+                      <p>Final Score: ${score}</p>
+                      ${generateLeaderboardHTML(onlineLeaderboard)}
+                      <button onclick="window.resetGame()">Play Again</button>
+                    `;
+                  }
+                  gameOverUISet = true;
+                }
+                container.style.display = "block";
+              }, 1500); // 1.5 second delay
             }
           }
         }
-    
+        
+        // Collision: Spaceship vs. Powerups.
         for (let i = powerups.length - 1; i >= 0; i--) {
           let pu = powerups[i];
-          if (spaceship.pos.distanceTo(pu.pos) < spaceship.radius + 10) {
+          if (spaceship.checkCollision(pu.position, 10)) {
             spaceship.powerupActive = true;
             spaceship.powerupTimer = POWERUP_DURATION;
             spaceship.powerupType = pu.type;
+            app.stage.removeChild(pu.sprite);
             powerups.splice(i, 1);
           }
         }
-    
-        if (asteroids.length === 0) { 
-          let desiredCount = 5 + (currentLevel - 1) * 2;
-          asteroids = spawnAsteroids(desiredCount); 
+        
+        // Spawn new asteroids if needed.
+        if (asteroids.length === 0) {
+          let desiredCount = 3 + Math.floor(currentLevel * 1.5);  // Reduced from 5 + (currentLevel * 3)
+          asteroids = asteroids.concat(spawnAsteroids(desiredCount));
         }
-      }
-      drawGame();
-      requestAnimationFrame(gameLoop);
-    }
-    gameLoop(performance.now());
-    
-    function drawGame() {
-      ctx.fillStyle = "black";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
-      for (let particle of particles) { particle.draw(ctx); }
-      spaceship.draw(ctx);
-      for (let bullet of bullets) { bullet.draw(ctx); }
-      for (let asteroid of asteroids) { asteroid.draw(ctx); }
-      for (let pu of powerups) { pu.draw(ctx); }
-      
-      ctx.fillStyle = "white";
-      ctx.font = (canvas.width < 600 ? "28px Arial" : "20px Arial");
-      ctx.textAlign = "left";
-      ctx.fillText("Score: " + score, 10, 30);
-      ctx.fillText("Level: " + currentLevel, canvas.width - 120, 30);
-      
-      if (spaceship.powerupActive) {
-        ctx.fillStyle = "green";
-        ctx.fillText("Power-Up Active!", 10, 60);
-      }
-      
-      if (showLevelDisplay) {
-        ctx.fillStyle = "yellow";
-        ctx.font = "40px Courier New";
-        ctx.textAlign = "center";
-        ctx.fillText("LEVEL " + currentLevel, canvas.width / 2, canvas.height / 2);
-        levelDisplayTimer -= 1;
-        if (levelDisplayTimer <= 0) { showLevelDisplay = false; }
-      }
-      
-      if (gameOver) {
-        const container = document.getElementById("gameOverContainer");
-        // If the score hasn't been submitted (onlineLeaderboard is null) and the form hasn't been displayed yet, show the initials form.
-        if (onlineLeaderboard === null && !leaderboardFormDisplayed) {
-          container.innerHTML = `
-            <h1>GAME OVER</h1>
-            <p>Final Score: ${score}</p>
-            <p>Enter your initials (max 3 letters):</p>
-            <input id="initialsInput" type="text" maxlength="3" placeholder="ABC" />
-            <button id="submitScoreBtn">Submit Score</button>
-          `;
-          leaderboardFormDisplayed = true;
-          document.getElementById("submitScoreBtn").addEventListener("click", () => {
-            const initials = document.getElementById("initialsInput").value;
-            updateLeaderboardOnline(score, initials);
-            getLeaderboardOnline((leaderboard) => {
-              onlineLeaderboard = leaderboard;
-              container.innerHTML = `
-                <h1>GAME OVER</h1>
-                <p>Final Score: ${score}</p>
-                ${generateLeaderboardHTML(onlineLeaderboard)}
-              `;
-            });
-          });
-        } else if (onlineLeaderboard !== null) {
-          container.innerHTML = `
-            <h1>GAME OVER</h1>
-            <p>Final Score: ${score}</p>
-            ${generateLeaderboardHTML(onlineLeaderboard)}
-          `;
+        
+        // Shooting: If space key pressed and cooldown finished.
+        if (!gameOver && welcomeDisplay === "none" && keys[" "] && shootCooldown <= 0) {
+          if (spaceship.powerupActive) {
+            if (spaceship.powerupType === "spread") {
+              const spawnPos = spaceship.getBulletSpawnPosition();
+              let b1 = new Bullet(spawnPos, spaceship.angle, spaceship.velocity);
+              let b2 = new Bullet(spawnPos, spaceship.angle + 15, spaceship.velocity);
+              let b3 = new Bullet(spawnPos, spaceship.angle - 15, spaceship.velocity);
+              bullets.push(b1, b2, b3);
+              shootCooldown = SHOOT_COOLDOWN_POWERUP;
+            } else if (spaceship.powerupType === "dual") {
+              let rad = spaceship.angle * Math.PI / 180;
+              let offset = new Vector2(Math.cos(rad), Math.sin(rad)).multiply(6);
+              const spawnPos = spaceship.getBulletSpawnPosition();
+              let b1 = new Bullet(spawnPos.add(offset), spaceship.angle, spaceship.velocity);
+              let b2 = new Bullet(spawnPos.subtract(offset), spaceship.angle, spaceship.velocity);
+              bullets.push(b1, b2);
+              shootCooldown = SHOOT_COOLDOWN_POWERUP;
+            } else if (spaceship.powerupType === "omni") {
+              const spawnPos = spaceship.position;
+              let b1 = new Bullet(spawnPos, spaceship.angle, spaceship.velocity);
+              let b2 = new Bullet(spawnPos, spaceship.angle + 90, spaceship.velocity);
+              let b3 = new Bullet(spawnPos, spaceship.angle + 180, spaceship.velocity);
+              let b4 = new Bullet(spawnPos, spaceship.angle + 270, spaceship.velocity);
+              bullets.push(b1, b2, b3, b4);
+              shootCooldown = SHOOT_COOLDOWN_POWERUP;
+            }
+            shootSound.currentTime = 0;
+            shootSound.play();
+          } else {
+            const spawnPos = spaceship.getBulletSpawnPosition();
+            let b = new Bullet(spawnPos, spaceship.angle, spaceship.velocity);
+            bullets.push(b);
+            shootCooldown = SHOOT_COOLDOWN_NORMAL;
+            shootSound.currentTime = 0;
+            shootSound.play();
+          }
         }
-        container.style.display = "block";
-        playAgainButton.style.display = "block";
-      } else {
-        playAgainButton.style.display = "none";
+        if (shootCooldown > 0) { shootCooldown -= normalizedDelta(delta); }
+        
+        // Check score for level up
+        if (score >= nextLevelScore) {
+          currentLevel++;
+          // Use Fibonacci sequence for next level score
+          const fibMultiplier = getFibonacciNumber(currentLevel);
+          nextLevelScore += BASE_LEVEL_UP_SCORE * fibMultiplier;
+          
+          // Show level up message
+          const levelUpDiv = document.getElementById('levelUp');
+          levelUpDiv.textContent = `LEVEL ${currentLevel}!`;
+          levelUpDiv.style.opacity = '1';
+          setTimeout(() => {
+            levelUpDiv.style.opacity = '0';
+          }, 2000);
+          
+          // Spawn more asteroids on level up (increased from 2 to 3 + level)
+          const newAsteroids = spawnAsteroids(3 + currentLevel);
+          asteroids = asteroids.concat(newAsteroids);
+        }
+        
+        // Update HUD
+        document.getElementById('scoreDisplay').textContent = score;
+        document.getElementById('levelDisplay').textContent = currentLevel;
+        
+        // --------------------------------------------------
+        // GAME OVER UI: Display DOM overlay.
+        // --------------------------------------------------
+        if (gameOver) {
+          // Remove this section since we're handling it in the collision check
+        }
+        
+        // Modify asteroid collision checks to run less frequently
+        frameCount = (frameCount + 1) % COLLISION_CHECK_INTERVAL;
+        if (frameCount === 0) {
+          // Check for asteroid collisions
+          for (let i = 0; i < asteroids.length; i++) {
+            for (let j = i + 1; j < asteroids.length; j++) {
+              if (asteroids[i].checkCollision(asteroids[j])) {
+                asteroids[i].handleCollision(asteroids[j]);
+              }
+            }
+          }
+        }
+      });
+      
+      // --------------------------------------------------
+      // Reset Game Function.
+      // --------------------------------------------------
+      function resetGame() {
+        gameOver = false;
+        score = 0;
+        currentLevel = 1;
+        nextLevelScore = LEVEL_UP_SCORE;
+        onlineLeaderboard = null;
+        leaderboardFormDisplayed = false;
+        submittedScore = null;
+        deathSoundPlayed = false;
+        gameOverUISet = false;
+        highScoreDisplayed = false;
+        
+        // Remove sprites from stage.
+        bullets.forEach(b => { app.stage.removeChild(b.sprite); });
+        asteroids.forEach(a => { 
+            if (a.sprite) {
+                app.stage.removeChild(a.sprite);
+                a.sprite.destroy();
+                a.sprite = null;
+            }
+        });
+        powerups.forEach(pu => { app.stage.removeChild(pu.sprite); });
+        particles.forEach(p => { app.stage.removeChild(p.sprite); });
+        
+        // Clear arrays
+        bullets = [];
+        asteroids = [];
+        powerups = [];
+        particles = [];
+        
+        // Reset object pools
+        particlePool.forEach(p => {
+            p.active = false;
+            if (p.sprite) {
+                p.sprite.visible = false;
+            }
+        });
+        asteroidPool.forEach(a => {
+            a.active = false;
+            if (a.sprite) {
+                a.sprite.visible = false;
+                a.sprite.destroy();
+                a.sprite = null;
+            }
+        });
+        
+        // Spawn new asteroids after clearing the old ones
+        asteroids = spawnAsteroids(5);
+        
+        // Remove the old spaceship container and create a new spaceship.
+        app.stage.removeChild(spaceship.container);
+        spaceship = new Spaceship(app.screen.width / 2, app.screen.height / 2);
+        
+        // Hide the game over container
         document.getElementById("gameOverContainer").style.display = "none";
+        
+        displayWelcomeLeaderboard();
+        console.log("Game reset.");
       }
+      // Make resetGame globally accessible for inline event handlers
+      window.resetGame = resetGame;
+      
+      console.log("Game loop and UI events set up.");
+      
+    }; // End of window.onload
+
+    // Add this function after the generateLeaderboardHTML function
+    function showHighScoreAlert() {
+      const alert = document.getElementById('highScoreAlert');
+      alert.style.opacity = '1';
+      setTimeout(() => {
+        alert.style.opacity = '0';
+      }, 3000);
     }
-    
-    function resetGame() {
-      gameOver = false;
-      leaderboardUpdated = false;
-      score = 0;
-      currentLevel = 1;
-      nextLevelScore = LEVEL_UP_SCORE;
-      onlineLeaderboard = null; // Reset the leaderboard cache.
-      leaderboardFormDisplayed = false; // Reset the form display flag.
-      spaceship = new Spaceship(new Vector2(width / 2, height / 2));
-      bullets = [];
-      asteroids = spawnAsteroids(5);
-      powerups = [];
-      particles = [];
-      deathSoundPlayed = false;
-      playAgainButton.style.display = "none";
-      document.getElementById("gameOverContainer").style.display = "none";
+
+    function spawnShipExplosion(position) {
+      // Create multiple shockwaves with different speeds and colors
+      for (let i = 0; i < 3; i++) {
+        const shockwave = window.getParticleFromPool(position, 'shockwave', 3 + i);
+        if (shockwave) {
+          shockwave.life = 120 + i * 20;  // Increased lifetime for slower expansion
+          window.particles.push(shockwave);
+        }
+      }
+
+      // Core explosion particles (bright center)
+      for (let i = 0; i < 20; i++) {
+        const core = window.getParticleFromPool(position, 'spark', 2);
+        if (core) {
+          core.life = 70 + Math.random() * 35;  // Slightly longer life
+          core.velocity = core.velocity.multiply(1.3);  // Slightly slower
+          window.particles.push(core);
+        }
+      }
+
+      // Ship debris (larger, more detailed pieces)
+      const debrisColors = [0x3498db, 0xe74c3c, 0xecf0f1];  // Ship's color scheme
+      for (let i = 0; i < 15; i++) {
+        const debris = window.getParticleFromPool(position, 'debris', 3);
+        if (debris) {
+          debris.life = 140 + Math.random() * 90;  // Even longer life for debris
+          debris.velocity = debris.velocity.multiply(0.6);  // Slower debris movement
+          debris.color = debrisColors[Math.floor(Math.random() * debrisColors.length)];
+          debris.rotationSpeed = (Math.random() - 0.5) * 0.12;  // Slower rotation
+          window.particles.push(debris);
+        }
+      }
+
+      // Secondary explosions (delayed smaller bursts)
+      setTimeout(() => {
+        for (let i = 0; i < 3; i++) {
+          const offset = new Vector2(
+            (Math.random() - 0.5) * 30,
+            (Math.random() - 0.5) * 30
+          );
+          const secondaryPos = position.add(offset);
+          window.spawnExplosion(secondaryPos, 2);
+        }
+      }, 250);  // Increased delay for slower pacing
+
+      // Maximum screen shake for ship explosion
+      window.applyScreenShake(window.MAX_SCREEN_SHAKE);
     }
   </script>
 </body>
